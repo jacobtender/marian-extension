@@ -1,6 +1,8 @@
+//content.js
 import { getAmazonDetails } from './extractors/amazon.js';
 import { getGoodreadsDetails } from './extractors/goodreads.js';
 import { getStoryGraphDetails } from './extractors/storygraph.js';
+import { getGoogleBooksDetails } from './extractors/googlebooks.js';
 
 
 async function getDetails() {
@@ -10,6 +12,7 @@ async function getDetails() {
   if (url.includes('goodreads.com')) return await getGoodreadsDetails();
   if (url.includes('thestorygraph.com')) return await getStoryGraphDetails();
   if (url.includes('isbnsearch.org')) return getIsbnSearchDetails();
+  if (url.includes('google.com')) return await getGoogleBooksDetails();
   return {};
 }
 

@@ -42,7 +42,9 @@
 				"https://www.amazon.com/*dp/*",
 				"https://www.amazon.com/gp/product/*",
 				"https://www.goodreads.com/book/show/*",
-				"https://app.thestorygraph.com/books/*"
+				"https://app.thestorygraph.com/books/*",
+				"https://www.google.com/books/*"
+
 			],
 			"js": [
 				"dist/content.js"
