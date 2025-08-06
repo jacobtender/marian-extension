@@ -81,8 +81,6 @@ async function getGoogleBooksDetails() {
     };
 }
 
-// Helper functions adapted from Tampermonkey version
-
 /**
  * Extracts the book title from the Google Books page.
  * @returns {string} Title text or empty string if not found.
