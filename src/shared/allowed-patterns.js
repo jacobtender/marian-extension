@@ -9,7 +9,7 @@ const ALLOWED_PATTERNS = [
 ];
 
 export function isAllowedUrl(url) {
-  console.log(`Checking if URL is allowed: ${url}`);
-  console.log(ALLOWED_PATTERNS.some(pattern => pattern.test(url)))
+  // console.log(`Checking if URL is allowed: ${url}`);
+  // console.log(ALLOWED_PATTERNS.some(pattern => pattern.test(url)))
   return ALLOWED_PATTERNS.some(pattern => pattern.test(url));
 }

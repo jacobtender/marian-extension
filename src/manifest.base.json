@@ -16,6 +16,17 @@
 	"host_permissions": [
 		"<all_urls>"
 	],
+	"web_accessible_resources": [
+		{
+			"resources": [
+				"popup.html",
+				"popup.js",
+				"shared/*.js",
+				"icons/*"
+			],
+			"matches": ["<all_urls>"]
+		}
+	],
 	"icons": {
 		"16": "icons/icon.png",
 		"32": "icons/icon.png",
@@ -23,9 +34,12 @@
 		"128": "icons/icon.png"
 	},
 	"action": {
-		"default_popup": "popup.html",
-		"default_title": "Get Book Details"
+		"default_title": "Marian — Toggle Sidebar",
+		"default_icon": {
+			"128": "icons/icon.png"
+		}
 	},
+
 	"content_scripts": [
 		{
 			"matches": [
@@ -56,7 +70,8 @@
 				"https://www.google.com/books/*"
 			],
 			"js": [
-				"content.js"
+				"content.js",
+				"sidebar-inject.js"
 			]
 		}
 	]
