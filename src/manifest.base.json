@@ -1,5 +1,5 @@
 {
-	"manifest_version": 3,
+	"manifest_version": 4,
 	"name": "Marian The Librarian",
 	"version": "",
 	"description": "Extracts book details from Amazon product pages. Created for the fine librarian corps of Hardcover.app.",
@@ -52,7 +52,8 @@
 				"https://www.amazon.com/gp/product/*",
 				"https://www.goodreads.com/book/show/*",
 				"https://app.thestorygraph.com/books/*",
-				"https://www.google.com/books/*"
+				"https://www.google.com/books/*",
+				"https://www.kobo.com/*/*/*book/*"
 			],
 			"js": [
 				"content.js"
