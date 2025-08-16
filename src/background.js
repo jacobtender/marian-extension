@@ -1,6 +1,7 @@
 import { isAllowedUrl } from "./shared/allowed-patterns";
 
 function updateIcon(tabId, isAllowed) {
+  console.log(tabId, isAllowed);
   chrome.action.setIcon({
     tabId,
     path: isAllowed

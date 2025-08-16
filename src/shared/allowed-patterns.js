@@ -1,15 +1,26 @@
 // shared/allowed-patterns.js
-const ALLOWED_PATTERNS = [
-  /https:\/\/www\.amazon\.[a-z.]+\/(?:gp\/product|dp|[^/]+\/dp)\/[A-Z0-9]{10}/,
-  /https:\/\/www\.amazon\.[a-z.]+\/[^/]+\/dp\/[A-Z0-9]{10}/,
-  /https:\/\/www\.amazon\.[a-z.]+\/-\/[a-z]+\/[^/]+\/dp\/[A-Z0-9]{10}/, // for paths with language segments
-  /https:\/\/www\.goodreads\.[a-z.]+\/book\/show\/\d+(-[a-zA-Z0-9-]+)?/,
-  /^https:\/\/app\.thestorygraph\.[a-z.]+\/books\/[0-9a-fA-F-]+$/,
-  /^https?:\/\/(www\.)?google\.[a-z.]+\/books/
-];
+import allowedUrls from "./allowed-urls.json";
+
+let allowedPatterns = [];
+
+function compilePatterns() {
+  if (allowedPatterns.length == allowedUrls.length) {
+    return
+  }
+  allowedPatterns = allowedUrls.map(url => {
+    // convert url glob to JS regex
+    const pattern = url
+      .replace(/[.+?^${}()|[\]\\]/g, '\\$&') // escape special characters
+      .replace(/\*/g, '[^/]*'); // replace asterisk
+
+    return new RegExp('^' + pattern);
+  });
+}
+
+compilePatterns();
 
 export function isAllowedUrl(url) {
   // console.log(`Checking if URL is allowed: ${url}`);
   // console.log(ALLOWED_PATTERNS.some(pattern => pattern.test(url)))
-  return ALLOWED_PATTERNS.some(pattern => pattern.test(url));
+  return allowedPatterns.some(pattern => pattern.test(url));
 }
