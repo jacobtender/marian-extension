@@ -1,4 +1,4 @@
-import { getImageScore, logMarian, delay } from "../shared/utils.js";
+import { getImageScore, logMarian } from "../shared/utils.js";
 
 async function getKoboDetails() {
     logMarian("Extracting Kobo details");
@@ -130,9 +130,20 @@ function getKoboFormatInfo(bookDetails, url) {
 
 }
 
+function joinContent(elements) {
+    return Array.from(elements).map(item => item.textContent.trim()).join("\n");
+}
+
 function extractKoboDescription(bookDetails) {
-    const descriptionEl = document.querySelector('.synopsis-description p');
-    bookDetails["Description"] = descriptionEl ? descriptionEl.textContent.trim() : null;
+    const descriptionEl = document.querySelectorAll('#synopsis div[data-full-synopsis] p');
+    const fallbackDescriptionEl = document.querySelectorAll('.synopsis-description p');
+    let description = null;
+    if (descriptionEl) {
+        description = joinContent(descriptionEl);
+    } else if (fallbackDescriptionEl) {
+        description = joinContent(fallbackDescriptionEl);
+    }
+    bookDetails["Description"] = description;
 }
 
 
