@@ -26,6 +26,7 @@ function copyDir(src, dest) {
 
 function copyManifests(target) {
   const destDir = path.join(DIST_DIR, target);
+  const allowedUrls = JSON.parse(fs.readFileSync(path.join(SRC_DIR, "shared", "allowed-urls.json")));
   const baseManifest = JSON.parse(fs.readFileSync(path.join(SRC_DIR, "manifest.base.json")));
   baseManifest.version = process.env.RELEASE_TAG?.replace("v", "") || package.version;
   const targetManifest = JSON.parse(fs.readFileSync(path.join(SRC_DIR, `manifest.${target}.json`)));
@@ -33,6 +34,11 @@ function copyManifests(target) {
   const combinedManifest = {
     ...baseManifest,
     ...targetManifest
+  }
+
+  let contentUrls = combinedManifest.content_scripts[0].matches;
+  if (contentUrls && contentUrls.length == 0) {
+    contentUrls.push(...allowedUrls);
   }
 
   fs.writeFileSync(path.join(destDir, "manifest.json"), JSON.stringify(combinedManifest, null, 2))
