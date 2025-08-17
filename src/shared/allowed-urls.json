@@ -20,6 +20,7 @@
   "https://www.amazon.se/*dp/*",
   "https://www.amazon.com.tr/*dp/*",
   "https://www.amazon.ae/*dp/*",
+
   "https://www.amazon.com/gp/product/*",
   "https://www.amazon.co.uk/gp/product/*",
   "https://www.amazon.com.au/gp/product/*",
@@ -41,7 +42,9 @@
   "https://www.amazon.se/gp/product/*",
   "https://www.amazon.com.tr/gp/product/*",
   "https://www.amazon.ae/gp/product/*",
+
   "https://www.goodreads.com/book/show/*",
   "https://app.thestorygraph.com/books/*",
-  "https://www.google.com/books/*"
+  "https://www.google.com/books/*",
+  "https://www.kobo.com/*/*/*book/*"
 ]

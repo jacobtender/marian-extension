@@ -54,6 +54,24 @@ async function buildScripts(outDir) {
     logLevel: "info",
     treeShaking: false,
   });
+
+  // Popup (separately, as module)
+  const popupEntry = path.join(SRC_DIR, "popup", "main.js");
+  const popupOutFile = path.join(outDir, "popup.js");
+
+  const popupDir = path.dirname(popupOutFile);
+  if (!fs.existsSync(popupDir)) fs.mkdirSync(popupDir, { recursive: true });
+
+  await esbuild.build({
+    entryPoints: [popupEntry],
+    outfile: popupOutFile,
+    bundle: true,
+    format: "iife",
+    platform: "browser",
+    target: ["chrome109"],
+    logLevel: "info",
+    treeShaking: false,
+  });
 }
 
 async function build(target) {

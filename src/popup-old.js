@@ -1,7 +1,8 @@
 import { isAllowedUrl } from "./shared/allowed-patterns";
 
-const loadingEl = document.getElementById('loading');
-const errorEl = document.getElementById('error');
+const DEBUG = false;
+
+const statusEl = document.getElementById('status');
 const detailsEl = document.getElementById('details');
 
 function copyToClipboard(text, labelEl) {
@@ -342,29 +343,86 @@ function renderRow(container, key, value) {
   container.appendChild(div);
 }
 
+function buildIssueUrl(tabUrl) {
+  const domain = new URL(tabUrl).hostname.replace(/^www\./, '');
+  const title = `Unsupported URL detected on ${domain}`;
+  const body = [
+    'This page is not currently supported by Marian:',
+    '',
+    tabUrl, // <-- raw URL here; we encode the whole body once
+    '',
+    '**Steps to reproduce:**',
+    '1. Open the above URL with the extension installed',
+    '2. Open the extension sidebar',
+    '3. See that details are not loaded',
+    '',
+    '**Expected behavior:**',
+    'Details should load for supported product pages.'
+  ].join('\n');
 
-function showLoading() {
-  loadingEl.style.display = 'block';
-  errorEl.style.display = 'none';
-  detailsEl.style.display = 'none';
+  return 'https://github.com/jacobtender/marian-extension/issues/new'
+    + `?title=${encodeURIComponent(title)}`
+    + `&body=${encodeURIComponent(body)}`
+    + `&labels=${encodeURIComponent('bug')}`;
 }
 
-function showError(message) {
-  loadingEl.style.display = 'none';
-  errorEl.textContent = message;
-  errorEl.style.display = 'block';
+function showStatus(message) {
+  statusEl.style.display = 'block';
+  statusEl.innerHTML = message;
   detailsEl.style.display = 'none';
 }
 
 function showDetails() {
-  loadingEl.style.display = 'none';
-  errorEl.style.display = 'none';
+  statusEl.style.display = 'none';
   detailsEl.style.display = 'block';
 }
 
+// DEBUG: Sidebar logger: mirrors console.* into a sidebar status area
+function initSidebarLogger() {
+  // find or create a status container in your sidebar
+  let host = document.getElementById('sidebar-status');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'sidebar-status';
+    host.style.cssText = 'font:12px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; padding:8px 12px; margin-bottom: 2rem; max-height:160px; overflow:auto;';
+    // insert above your details area if you have one
+    const container = document.getElementById('details') || document.body;
+    container.parentNode.insertBefore(host, container);
+  }
+
+  const append = (level, parts) => {
+    const line = document.createElement('div');
+    line.style.margin = '2px 0';
+    if (level === 'warn') line.style.color = '#9a6b00';
+    if (level === 'error') line.style.color = '#b00020';
+    if (level === 'debug') line.style.opacity = '0.8';
+
+    const ts = new Date().toLocaleTimeString();
+    const text = parts.map(p => {
+      try { return typeof p === 'string' ? p : JSON.stringify(p); }
+      catch { return String(p); }
+    }).join(' ');
+    line.textContent = `[${ts}] ${level.toUpperCase()}: ${text}`;
+    host.appendChild(line);
+    host.scrollTop = host.scrollHeight;
+  };
+
+  // patch console methods to also write to the sidebar
+  ['log', 'warn', 'error', 'debug'].forEach(fn => {
+    const original = console[fn].bind(console);
+    console[fn] = (...args) => {
+      append(fn, args);
+      original(...args);
+    };
+  });
+
+  console.debug('Sidebar logger initialized');
+}
 
 // Polling function to try multiple times before giving up
 function tryGetDetails(retries = 8, delay = 300) {
+  let didRefresh = false;
+
   return new Promise((resolve, reject) => {
     function attempt(remaining) {
       chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
@@ -374,15 +432,35 @@ function tryGetDetails(retries = 8, delay = 300) {
         }
 
         chrome.tabs.sendMessage(tab.id, 'ping', (response) => {
+          console.log('Ping response:', response, 'Remaining attempts:', remaining);
           if (chrome.runtime.lastError || response !== 'pong') {
             if (remaining > 0) {
               setTimeout(() => attempt(remaining - 1), delay);
             } else {
-              chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-                if (tab?.id) chrome.tabs.reload(tab.id);
-              });
-              setTimeout(() => location.reload(), 1500);
-              reject('Content script not ready or unavailable. Refreshing Page...');
+              // reload the TAB once, then retry after it finishes loading
+              if (!didRefresh) {
+                didRefresh = true;
+                // showStatus("Content script not ready, refreshing tab...");
+                chrome.tabs.reload(tab.id, { bypassCache: true });
+                showStatus("Tab reloaded, fetching details...");
+
+                const onUpdated = (updatedTabId, info) => {
+                  if (updatedTabId === tab.id && info.status === 'complete') {
+                    chrome.tabs.onUpdated.removeListener(onUpdated);
+                    console.log(retries, 'Tab reloaded, fetching details again...');
+                    setTimeout(() => attempt(retries), 350); // retry fresh after reload
+                  }
+                };
+                chrome.tabs.onUpdated.addListener(onUpdated);
+              } else {
+                // After the refresh and retry, still no handshake → unsupported page
+                const issueUrl = buildIssueUrl(tab?.url || '(unknown URL)');
+                showStatus(`
+                  This site is supported, but this page isn't yet.<br/>
+                  Please <a href="${issueUrl}" target="_blank" rel="noopener noreferrer">report</a> the full URL of this page so we can add support!
+                `);
+                // reject('Unsupported URL or no content script after refresh.');
+              }
             }
             return;
           }
@@ -402,15 +480,17 @@ function tryGetDetails(retries = 8, delay = 300) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  if (DEBUG) initSidebarLogger(); // DEBUG: Initialize sidebar logger
+
   chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     const url = tab?.url || "";
 
     if (!isAllowedUrl(url)) {
-      showError("This extension only works on supported product pages.");
+      showStatus("This extension only works on supported product pages.");
       return;
     }
 
-    showLoading();
+    showStatus("DOM Loaded, fetching details...");
 
     tryGetDetails()
       .then(details => {
@@ -418,7 +498,7 @@ document.addEventListener("DOMContentLoaded", () => {
         renderDetails(details);
       })
       .catch(err => {
-        showError(err);
+        showStatus(err);
       });
   });
 });
@@ -430,7 +510,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.type === "REFRESH_SIDEBAR" && msg.url && isAllowedUrl(msg.url)) {
-    showLoading();
+    showStatus("Loading details...");
     tryGetDetails()
       .then(details => {
         showDetails();
@@ -438,7 +518,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         renderDetails(details);
       })
       .catch(err => {
-        showError(err);
+        showStatus(err);
       });
   }
 });

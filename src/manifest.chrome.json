@@ -7,6 +7,9 @@
 		"default_path": "popup.html"
 	},
 	"permissions": [
+		"scripting",
+		"activeTab",
+		"tabs",
 		"sidePanel",
 		"notifications"
 	]

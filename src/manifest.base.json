@@ -8,11 +8,6 @@
 		"url": "https://jacobtender.net"
 	},
 	"homepage_url": "https://hardcover.app/join?referrer_id=8753",
-	"permissions": [
-		"scripting",
-		"activeTab",
-		"tabs"
-	],
 	"host_permissions": [
 		"<all_urls>"
 	],

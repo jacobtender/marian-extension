@@ -14,5 +14,10 @@
 		"default_title": "Marian",
 		"default_panel": "popup.html"
 	},
-	"permissions": ["notifications"]
+	"permissions": [
+		"scripting",
+		"activeTab",
+		"tabs",
+		"notifications"
+	]
 }

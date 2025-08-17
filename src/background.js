@@ -1,7 +1,6 @@
 import { isAllowedUrl } from "./shared/allowed-patterns";
 
 function updateIcon(tabId, isAllowed) {
-  console.log(tabId, isAllowed);
   chrome.action.setIcon({
     tabId,
     path: isAllowed
@@ -79,4 +78,18 @@ chrome.action.onClicked.addListener((tab) => {
   setTimeout(() => {
     sendWhenReady({ type: "REFRESH_SIDEBAR", url: tab.url });
   }, 300); // give the sidebar a moment to load
+});
+
+// when tab URL changes in the current active tab
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (tab.active && changeInfo.url) {
+    chrome.runtime.sendMessage({ type: "TAB_URL_CHANGED", url: changeInfo.url });
+  }
+});
+
+// when the active tab changes
+chrome.tabs.onActivated.addListener(() => {
+  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+    chrome.runtime.sendMessage({ type: "TAB_URL_CHANGED", url: tab?.url || "" });
+  });
 });
