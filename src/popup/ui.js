@@ -25,11 +25,8 @@ function getHighResImageUrl(src) {
 function formatDate(dateStr) {
   const date = new Date(dateStr);
   if (!isNaN(date)) {
-    if (/^\d{4}$/.test(dateStr.trim())) return `01/01/${dateStr.trim()}`;
-    const mm = String(date.getMonth() + 1).padStart(2, '0');
-    const dd = String(date.getDate()).padStart(2, '0');
-    const yyyy = date.getFullYear();
-    return `${mm}/${dd}/${yyyy}`;
+    // navigator.language should always be set, but adding a fallback just in case
+    return new Intl.DateTimeFormat(navigator.language || "en-US").format(date);
   }
   return dateStr;
 }
@@ -141,9 +138,9 @@ export function renderDetails(details) {
     img.alt = 'Cover Image';
     img.title = 'Click to download';
     img.style.maxWidth = '100px';
-		img.style.minHeight = '100px';
+    img.style.minHeight = '100px';
     img.style.cursor = 'pointer';
-		img.loading = 'lazy'; // lazy load for performance
+    img.loading = 'lazy'; // lazy load for performance
     img.addEventListener('click', () => {
       const fallbackId =
         details['ISBN-13'] ||
@@ -251,9 +248,9 @@ export function renderDetails(details) {
   container.appendChild(hr);
 
   const orderedKeys = [
-    'ISBN-10','ISBN-13','ASIN','Source ID','Contributors','Publisher',
-    'Reading Format','Listening Length','Pages','Edition Format',
-    'Publication date','Language'
+    'ISBN-10', 'ISBN-13', 'ASIN', 'Source ID', 'Contributors', 'Publisher',
+    'Reading Format', 'Listening Length', 'Pages', 'Edition Format',
+    'Publication date', 'Language'
   ];
 
   const rendered = new Set(['Series', 'Series Place']);
@@ -264,7 +261,7 @@ export function renderDetails(details) {
     }
   });
 
-  const filteredKeys = ['img','imgScore','Title','Description'];
+  const filteredKeys = ['img', 'imgScore', 'Title', 'Description'];
   Object.entries(details).forEach(([key, value]) => {
     if (filteredKeys.includes(key) || rendered.has(key)) return;
     renderRow(container, key, value);
@@ -282,7 +279,7 @@ export function showStatus(message) {
 
 export function showDetails() {
   const detailsEl = detailsBox();
-if (!detailsEl) return;
+  if (!detailsEl) return;
   detailsEl.style.display = 'block';
 }
 
@@ -310,7 +307,7 @@ export function initSidebarLogger() {
     host.scrollTop = host.scrollHeight;
   };
 
-  ['log','warn','error','debug'].forEach(fn => {
+  ['log', 'warn', 'error', 'debug'].forEach(fn => {
     const original = console[fn].bind(console);
     console[fn] = (...args) => { append(fn, args); original(...args); };
   });
@@ -326,7 +323,7 @@ export function addRefreshButton(onClick) {
   const btn = document.createElement('button');
   btn.id = 'refresh-button';
   btn.textContent = 'Refresh details from current tab';
-	btn.style.display = 'none';
+  btn.style.display = 'none';
 
   btn.addEventListener('click', () => {
     if (btn.disabled) return; // bail if not allowed
