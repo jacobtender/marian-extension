@@ -116,9 +116,9 @@ function getKoboFormatInfo(bookDetails, url) {
         let hours = Math.floor(audioLength);
         let mins = Math.round(((audioLength - hours) * 60));
         if (audioLength < 1) {
-            bookDetails['Listening Length'] = mins + " minutes";
+            bookDetails['Listening Length'] = [mins + " minutes"];
         } else {
-            bookDetails['Listening Length'] = hours + " hours " + mins + " minutes";
+            bookDetails['Listening Length'] = [hours + " hours ", mins + " minutes"];
         }
     } else {
         bookDetails['Reading Format'] = 'Ebook';

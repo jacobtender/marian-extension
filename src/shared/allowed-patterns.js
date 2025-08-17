@@ -6,7 +6,8 @@ const ALLOWED_PATTERNS = [
   /https:\/\/www\.goodreads\.[a-z.]+\/book\/show\/\d+(-[a-zA-Z0-9-]+)?/,
   /^https:\/\/app\.thestorygraph\.[a-z.]+\/books\/[0-9a-fA-F-]+$/,
   /^https?:\/\/(www\.)?google\.[a-z.]+\/books/,
-  /^https?:\/\/(www\.)?kobo\.[a-z]{2,10}\/[a-z]{2,5}\/[a-z]{2,5}\/[a-z]{1,5}book\/[0-9a-z\-]+/
+  /^https?:\/\/(www\.)?kobo\.[a-z]{2,10}\/[a-z]{2,5}\/[a-z]{2,5}\/[a-z]{1,5}book\/[0-9a-z\-]+/,
+  /^https?:\/\/(www\.)?libro\.fm\/audiobooks\/\d+(-[a-zA-Z0-9-]+)?/
 ];
 
 export function isAllowedUrl(url) {

@@ -70,7 +70,8 @@
 				"https://www.goodreads.com/book/show/*",
 				"https://app.thestorygraph.com/books/*",
 				"https://www.google.com/books/*",
-				"https://www.kobo.com/*/*/*book/*"
+				"https://www.kobo.com/*/*/*book/*",
+				"https://libro.fm/audiobooks/*"
 			],
 			"js": [
 				"content.js"
