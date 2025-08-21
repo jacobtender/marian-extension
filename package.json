@@ -6,8 +6,8 @@
   "scripts": {
     "build": "node build.js",
     "watch": "node --watch --watch-path=src build.js",
-    "dev:firefox": "concurrently 'npm run watch' 'web-ext run --config .web-ext/firefox-config.mjs'",
-    "dev:chrome": "concurrently 'npm run watch' 'web-ext run --config .web-ext/chrome-config.mjs --target chromium'"
+    "dev:firefox": "concurrently --kill-others 'npm run watch' 'web-ext run --config .web-ext/firefox-config.mjs'",
+    "dev:chrome": "concurrently --kill-others 'npm run watch' 'web-ext run --config .web-ext/chrome-config.mjs --target chromium'"
   },
   "repository": {
     "type": "git",
