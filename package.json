@@ -4,7 +4,10 @@
   "description": "Extracts book details from Amazon product pages. Created for the fine librarian corps of Hardcover.app.",
   "main": "background.js",
   "scripts": {
-    "build": "node build.js"
+    "build": "node build.js",
+    "watch": "node --watch --watch-path=src build.js",
+    "dev:firefox": "concurrently 'npm run watch' 'web-ext run --config .web-ext/firefox-config.mjs'",
+    "dev:chrome": "concurrently 'npm run watch' 'web-ext run --config .web-ext/chrome-config.mjs --target chromium'"
   },
   "repository": {
     "type": "git",
@@ -18,6 +21,9 @@
   },
   "homepage": "https://github.com/jacobtender/marian-extension#readme",
   "devDependencies": {
-    "esbuild": "^0.25.8"
+    "concurrently": "^9.2.0",
+    "dotenv": "^17.2.1",
+    "esbuild": "^0.25.8",
+    "web-ext": "^8.9.0"
   }
 }
