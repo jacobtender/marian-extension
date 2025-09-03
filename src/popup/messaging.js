@@ -1,6 +1,6 @@
 import { showStatus } from "./ui.js";
 
-function buildIssueUrl(tabUrl) {
+export function buildIssueUrl(tabUrl) {
   let domain = '(unknown domain)';
   try { domain = new URL(tabUrl).hostname.replace(/^www\./, ''); } catch {}
   const title = `Unsupported URL detected on ${domain}`;

@@ -1,10 +1,12 @@
-import { tryGetDetails } from "./messaging.js";
-import { isAllowedUrl } from "../shared/allowed-patterns.js";
+import { tryGetDetails, buildIssueUrl } from "./messaging.js";
+import { isAllowedUrl, isSiteSupported } from "../shared/allowed-patterns.js";
 import { normalizeUrl, setLastFetchedUrl, getLastFetchedUrl } from "./utils.js";
 
 // DOM refs (looked up when functions are called)
 function statusBox() { return document.getElementById('status'); }
 function detailsBox() { return document.getElementById('details'); }
+function issueBox() { return document.getElementById('issues'); }
+function refreshButton() { return document.getElementById('refresh-button'); }
 
 function copyToClipboard(text, labelEl) {
   navigator.clipboard.writeText(text).then(() => {
@@ -273,11 +275,26 @@ export function renderDetails(details) {
 
 export function showStatus(message) {
   const statusEl = statusBox();
+  const issueEl = statusBox();
   const detailsEl = detailsBox();
   if (!statusEl || !detailsEl) return;
   statusEl.style.display = 'block';
   statusEl.innerHTML = message;
   detailsEl.style.display = 'none';
+  issueEl.style.display = 'none';
+}
+
+export function showIssue(message) {
+  const statusEl = statusBox();
+  const issueEl = issueBox();
+  const detailsEl = detailsBox();
+  const refreshBtn = refreshButton();
+  if (!issueEl || !detailsEl || !statusEl) return;
+  issueEl.style.display = 'block';
+  issueEl.innerHTML = message;
+  refreshBtn.style.display = 'none';
+  statusEl.style.display = 'none';
+  detailsEl.style.display = 'block';
 }
 
 export function showDetails() {
@@ -353,9 +370,12 @@ export function addRefreshButton(onClick) {
 export function updateRefreshButtonForUrl(url) {
   const btn = document.getElementById('refresh-button');
   const statusEl = statusBox();
+  const issueEl = issueBox();
   if (!btn) return;
 
   const allowed = isAllowedUrl(url);
+  const siteSupported = isSiteSupported(url);
+  console.log(`[Extension] Update refresh button for URL: ${url} (allowed: ${allowed}, siteSupported: ${siteSupported})`);
   const norm = normalizeUrl(url);
   const alreadyFetched = norm === getLastFetchedUrl();
   const enabled = allowed && !alreadyFetched;
@@ -369,15 +389,25 @@ export function updateRefreshButtonForUrl(url) {
   // reset classes
   btn.classList.remove('refresh-enabled', 'refresh-disabled', 'refresh-unsupported');
 
-  if (!allowed) {
+  if (!allowed && siteSupported) {
     btn.classList.add('refresh-unsupported');
     btn.textContent = 'This page is not supported';
+    const issueUrl = buildIssueUrl(url || '(unknown URL)');
+    showIssue(`
+      This site is supported, but this page isn't yet.<br/>
+      Please <a href="${issueUrl}" target="_blank" rel="noopener noreferrer">report</a> the full URL of this page so we can add support!
+    `);
+  } else if (!allowed && !siteSupported) {
+    btn.classList.add('refresh-unsupported');
+    btn.textContent = 'This site is not supported';
   } else if (alreadyFetched) {
     btn.classList.add('refresh-disabled');
     btn.textContent = 'You have these details checked out';
+    issueEl.style.display = 'none';
   } else {
     btn.classList.add('refresh-enabled');
     btn.textContent = 'Check out details from current tab';
+    issueEl.style.display = 'none';
   }
 
   if (statusEl && allowed) statusEl.style.display = 'none';

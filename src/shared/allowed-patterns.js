@@ -14,3 +14,14 @@ export function isAllowedUrl(url) {
   // console.log(ALLOWED_PATTERNS.some(pattern => pattern.test(url)))
   return ALLOWED_PATTERNS.some(pattern => pattern.test(url));
 }
+
+export function isSiteSupported(url) {
+  const supportedSites = [
+    /^https?:\/\/www\.amazon\.[a-z.]+/,
+    /^https?:\/\/www\.goodreads\.[a-z.]+/,
+    /^https?:\/\/app\.thestorygraph\.[a-z.]+/,
+    /^https?:\/\/(www\.)?google\.[a-z.]+/,
+    /^https?:\/\/(www\.)?kobo\.[a-z]+/
+  ];
+  return supportedSites.some(pattern => pattern.test(url));
+}
