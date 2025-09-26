@@ -63,7 +63,12 @@ export function getFormattedText(element) {
 
   processNode(element);
 
-  return result;
+  return result
+    .replace(/[ \t]+/g, ' ')    // Multiple spaces/tabs to single space
+    .replace(/\n /g, '\n')      // Remove spaces after newlines
+    .replace(/ \n/g, '\n')      // Remove spaces before newlines
+    .replace(/\n{3,}/g, '\n\n') // Max 2 consecutive newlines
+    .trim();
 }
 
 export function sendMessage(message) {

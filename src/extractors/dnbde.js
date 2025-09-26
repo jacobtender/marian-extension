@@ -201,12 +201,7 @@ function extractTextFromHTML(htmlString) {
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = htmlString;
 
-  return getFormattedText(tempDiv)
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n /g, '\n')
-    .replace(/ \n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+  return getFormattedText(tempDiv);
 }
 
 /**
