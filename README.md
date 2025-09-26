@@ -1,3 +1,27 @@
+<img src="src/icons/icon-full.png" alt="Marian the Librarian icon" width="160" />
+
+## Marian the Librarian
+[![Latest Release](https://img.shields.io/github/v/release/jacobtender/marian-extension?color=16a34a&label=Latest%20Release)](https://github.com/jacobtender/marian-extension/releases/latest)
+[![Install in Chrome](https://img.shields.io/badge/Chrome%20Web%20Store-Install-blue?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/marian-the-librarian/gpnkkkbefalodcjhgafioibknoingann)
+[![Install in Firefox](https://img.shields.io/badge/Firefox%20Add--ons-Install-orange?logo=firefox&logoColor=white)](https://addons.mozilla.org/firefox/addon/marian-the-librarian/)
+[![Contributors](https://img.shields.io/github/contributors/jacobtender/marian-extension?color=8b5cf6&logo=github)](https://github.com/jacobtender/marian-extension/graphs/contributors)
+
+Marian the Librarian helps [Hardcover.app](https://hardcover.app/join?referrer_id=8753) contributors and other online book data enthusiasts view and capture book metadata from popular retail and catalog sites. With a single click, the sidebar pulls down titles, contributors, identifiers, descriptions, cover art, and more so you can manage clean data without endlessly scrolling, copying, and pasting.
+
+### Supported Sites
+Book pages on these sites are currently supported by Marian. To request support for another site, [create an issue](https://github.com/jacobtender/marian-extension/issues/new?template=site-support-request.md) or submit a pull request.
+
+- Amazon
+- Goodreads
+- Google Books
+- The StoryGraph
+- Rakuten Kobo
+- Libro.fm
+- ISBN Search
+- ISBN.de
+- German National Library
+
+
 ## Building from Source
 
 This project supports building browser extension packages for both **Chrome (Manifest V3)** and **Firefox (Manifest V2)**.

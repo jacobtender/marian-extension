@@ -1,6 +1,8 @@
 import { isAllowedUrl } from "./shared/allowed-patterns";
 import { runtime } from "./shared/utils"
 
+const activeSidebarWindows = new Set();
+
 function updateIcon(tabId, isAllowed) {
   chrome.action.setIcon({
     tabId,
@@ -34,17 +36,54 @@ function openSidebar(tab) {
   }
 }
 
+const IGNORED_RUNTIME_ERRORS = new Set([
+  "Could not establish connection. Receiving end does not exist.",
+  "The message port closed before a response was received."
+]);
+
+function safeRuntimeSend(message) {
+  const maybePromise = chrome.runtime.sendMessage(message, () => {
+    const error = chrome.runtime.lastError;
+    if (error && !IGNORED_RUNTIME_ERRORS.has(error.message)) {
+      console.warn("Runtime message failed:", error);
+    }
+  });
+
+  // MV3 promises if no callback listener exists; catch to avoid unhandled rejections.
+  if (maybePromise && typeof maybePromise.then === "function") {
+    maybePromise.catch((error) => {
+      if (!error || IGNORED_RUNTIME_ERRORS.has(error.message)) return;
+      console.warn("Runtime message failed:", error);
+    });
+  }
+}
+
 function sendWhenReady(msg, retries = 10, delay = 150) {
   function attempt(remaining) {
-    chrome.runtime.sendMessage({ type: "ping" }, (response) => {
-      if (response === "pong") {
-        chrome.runtime.sendMessage(msg);
-      } else if (remaining > 0) {
+    if (msg?.windowId && !hasActiveSidebar(msg.windowId)) {
+      if (remaining > 0) {
         setTimeout(() => attempt(remaining - 1), delay);
       }
+      return;
+    }
+
+    chrome.runtime.sendMessage({ type: "SIDEBAR_PING", windowId: msg?.windowId }, (response) => {
+      const error = chrome.runtime.lastError;
+      if (error || response !== "pong") {
+        if (remaining > 0) {
+          setTimeout(() => attempt(remaining - 1), delay);
+        }
+        return;
+      }
+
+      safeRuntimeSend(msg);
     });
   }
   attempt(retries);
+}
+
+function hasActiveSidebar(windowId) {
+  return typeof windowId === "number" && activeSidebarWindows.has(windowId);
 }
 
 function showUnsupportedNotification(tab) {
@@ -77,33 +116,52 @@ chrome.action.onClicked.addListener((tab) => {
 
   openSidebar(tab);
   setTimeout(() => {
-    sendWhenReady({ type: "REFRESH_SIDEBAR", url: tab.url });
+    sendWhenReady({ type: "REFRESH_SIDEBAR", url: tab.url, windowId: tab.windowId });
   }, 300); // give the sidebar a moment to load
 });
 
 // when tab URL changes in the current active tab
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (tab.active && changeInfo.url) {
-    chrome.runtime.sendMessage({ type: "TAB_URL_CHANGED", url: changeInfo.url });
+  if (tab.active && changeInfo.url && hasActiveSidebar(tab.windowId)) {
+    safeRuntimeSend({ type: "TAB_URL_CHANGED", url: changeInfo.url, windowId: tab.windowId });
   }
 });
 
 // when the active tab changes
 chrome.tabs.onActivated.addListener(() => {
   chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-    chrome.runtime.sendMessage({ type: "TAB_URL_CHANGED", url: tab?.url || "" });
+    if (!tab || !hasActiveSidebar(tab.windowId)) return;
+    safeRuntimeSend({ type: "TAB_URL_CHANGED", url: tab.url || "", windowId: tab.windowId });
   });
 });
 
 // Listen for messages from the content script.
 runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log("got message", request);
+  if (request?.type === "SIDEBAR_READY") {
+    if (typeof request.windowId === "number") {
+      activeSidebarWindows.add(request.windowId);
+    }
+    if (typeof sendResponse === "function") sendResponse(true);
+    return false;
+  }
+
+  if (request?.type === "SIDEBAR_UNLOADED") {
+    if (typeof request.windowId === "number") {
+      activeSidebarWindows.delete(request.windowId);
+    }
+    if (typeof sendResponse === "function") sendResponse(true);
+    return false;
+  }
 
   if (request.action === 'fetchDepositData') {
     handleFetchRequest(request.url).then(sendResponse);
     return true;
   }
   return false;
+});
+
+chrome.windows.onRemoved.addListener((windowId) => {
+  activeSidebarWindows.delete(windowId);
 });
 
 async function handleFetchRequest(url) {
