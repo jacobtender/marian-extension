@@ -248,9 +248,19 @@ export function renderDetails(details) {
   container.appendChild(hr);
 
   const orderedKeys = [
-    'ISBN-10', 'ISBN-13', 'ASIN', 'Source ID', 'Contributors', 'Publisher',
-    'Reading Format', 'Listening Length', 'Pages', 'Edition Format',
-    'Publication date', 'Language'
+    'ISBN-10',
+    'ISBN-13',
+    'ASIN',
+    'Source ID',
+    'Contributors',
+    'Publisher',
+    'Reading Format',
+    'Listening Length',
+    'Pages',
+    'Edition Format',
+    'Edition Information',
+    'Publication date',
+    'Language'
   ];
 
   const rendered = new Set(['Series', 'Series Place']);

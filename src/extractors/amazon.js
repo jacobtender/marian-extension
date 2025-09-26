@@ -2,19 +2,21 @@ import { getImageScore, logMarian, delay } from '../shared/utils.js';
 const bookSeriesRegex = /^Book (\d+) of \d+$/i;
 
 const includedLabels = [
-    'Contributors',
-    'Publisher',
-    'Publication date',
-    'Program Type',
-    'Language',
-    'Print length',
-    'Listening Length',
-    'ISBN-10',
-    'ISBN-13',
-    'ASIN',
-    'Series',
-    'Series Place',
-  ];
+  'Contributors',
+  'Publisher',
+  'Publication date',
+  'Program Type',
+  'Language',
+  'Print length',
+  'Listening Length',
+  'ISBN-10',
+  'ISBN-13',
+  'ASIN',
+  'Series',
+  'Series Place',
+  'Version',
+  'Edition'
+];
 
 async function getAmazonDetails() {
 	logMarian('Extracting Amazon details');
@@ -38,6 +40,18 @@ async function getAmazonDetails() {
   } else {
     bookDetails['Reading Format'] = 'Physical Book';
   }
+
+  const version = bookDetails['Version'] || audibleDetails['Version'];
+  const edition = bookDetails["Edition"];
+  if (!!version && !!edition) { // if both edition and version are present mix them
+    bookDetails["Edition Information"] = `${edition}; ${version}`;
+  } else { // otherwise pick one or leave it undefined if neither exist
+    bookDetails["Edition Information"] = edition || version;
+  }
+  // maybe delete? to prevent duplicates
+  // delete bookDetails['Version'];
+  // delete audibleDetails['Version'];
+  // delete bookDetails["Edition"]
 
   // logMarian("bookDetails", bookDetails);
   // logMarian("audibleDetails", audibleDetails);

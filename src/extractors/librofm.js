@@ -167,7 +167,7 @@ function extraLibroInfo(bookDetails) {
 		.find(cell => cell.querySelector('strong')?.textContent.trim().toLowerCase() == 'edition');
 	if (editionCell) {
 		let editionFormat = editionCell.querySelector('span')?.textContent.trim()
-		bookDetails['Edition Format'] = editionFormat;
+		bookDetails['Edition Information'] = editionFormat;
 	}
 }
 
