@@ -94,6 +94,7 @@
 				"https://www.kobo.com/*/*/*book/*",
 				"https://libro.fm/audiobooks/*",
 				"https://isbnsearch.org/isbn/*",
+				"https://isbndb.com/book/*",
 
 				"https://isbn.de/buch/*",
 				"https://isbn.de/ebook/*",

@@ -11,7 +11,8 @@ const ALLOWED_PATTERNS = [
   /^https?:\/\/(www\.)?libro\.fm\/audiobooks\/\d+(-[a-zA-Z0-9-]+)?/,
   /^https?:\/\/isbnsearch\.(?:org|com)\/isbn\/((?:\d{3})?\d{9}(?:X|\d))\b/,
   /https:\/\/(?:www\.)?isbn\.de\/(buch|ebook|hoerbuch)\/((?:\d{3})?\d{9}(?:X|\d))\b/,
-  /https:\/\/portal\.dnb\.de\/opac.*(simpleSearch|showFullRecord)/
+  /https:\/\/portal\.dnb\.de\/opac.*(simpleSearch|showFullRecord)/,
+  /https:\/\/(?:www\.)?isbndb\.com\/book\/((?:\d{3})?\d{9}(?:X|x|\d))\b/,
 ];
 
 export function isAllowedUrl(url) {

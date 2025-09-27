@@ -7,6 +7,7 @@ import { getLibroDetails } from './extractors/librofm.js';
 import { getIsbnSearchDetails } from './extractors/isbnsearch.js'
 import { getIsbnDeDetails } from './extractors/isbnde.js';
 import { getDnbDeDetails } from './extractors/dnbde.js';
+import { getIsbnDbDetails } from './extractors/isbndb.js';
 import { logMarian } from './shared/utils.js';
 
 
@@ -22,6 +23,7 @@ async function getDetails() {
   if (url.includes('libro.fm')) return await getLibroDetails();
   if (url.includes('isbn.de')) return await getIsbnDeDetails();
   if (url.includes('dnb.de')) return await getDnbDeDetails();
+  if (url.includes('isbndb')) return await getIsbnDbDetails();
   return {};
 }
 
