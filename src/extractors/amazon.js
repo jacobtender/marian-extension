@@ -2,19 +2,19 @@ import { getImageScore, logMarian, getFormattedText } from '../shared/utils.js';
 const bookSeriesRegex = /^Book (\d+) of \d+$/i;
 
 const includedLabels = new Set([
-    'Contributors',
-    'Publisher',
-    'Publication date',
-    'Program Type',
-    'Language',
-    'Print length',
-    'Listening Length',
-    'ISBN-10',
-    'ISBN-13',
-    'ASIN',
-    'Series',
-    'Series Place'
-  ]);
+  'Contributors',
+  'Publisher',
+  'Publication date',
+  'Program Type',
+  'Language',
+  'Print length',
+  'Listening Length',
+  'ISBN-10',
+  'ISBN-13',
+  'ASIN',
+  'Series',
+  'Series Place'
+]);
 
 async function getAmazonDetails() {
   logMarian('Extracting Amazon details');
@@ -30,9 +30,11 @@ async function getAmazonDetails() {
   bookDetails["img"] = imgEl?.src ? getHighResImageUrl(imgEl.src) : null;
   bookDetails["imgScore"] = imgEl?.src ? await getImageScore(imgEl.src) : 0;
   bookDetails["Contributors"] = contributors;
-  
+
   if (bookDetails["Edition Format"]?.includes("Kindle")) {
-    bookDetails['Reading Format'] = 'Ebook'; 
+    bookDetails['Reading Format'] = 'Ebook';
+    // Normalize `Kindle Edition` to to `Kindle` like it is on amazon.com 
+    bookDetails["Edition Format"] = "Kindle";
   } else if (
     bookDetails["Edition Format"]?.toLowerCase().includes("audio") ||
     bookDetails["Edition Format"]?.toLowerCase().includes("audible") ||
@@ -44,6 +46,17 @@ async function getAmazonDetails() {
     bookDetails['Reading Format'] = 'Physical Book';
   }
 
+  // combined publisher date
+  const pubDate = bookDetails["Publisher"]?.match(/^(?<pub>[^(;]+?)(?:; (?<edition>[\w ]+))? \((?<date>\d{1,2} \w+ \d{4})\)$/);
+  if (pubDate != undefined) {
+    bookDetails["Publisher"] = pubDate.groups["pub"].trim();
+    bookDetails["Publication date"] = pubDate.groups["date"];
+    if (pubDate.groups["edition"]) {
+      bookDetails["Edition Information"] = pubDate.groups["edition"].trim();
+    }
+  }
+
+  // Fill in Edition Info from Version or Edition
   const version = bookDetails['Version'] || audibleDetails['Version'];
   const edition = bookDetails["Edition"];
   if (!!version && !!edition) { // if both edition and version are present mix them
@@ -54,7 +67,7 @@ async function getAmazonDetails() {
 
   // logMarian("bookDetails", bookDetails);
   // logMarian("audibleDetails", audibleDetails);
- 
+
   const mergedDetails = {
     ...bookDetails,
     ...audibleDetails,
@@ -124,6 +137,17 @@ function getDetailBullets() {
 
     details[label] = value;
   });
+
+
+  // Double check book series
+  const series = document.querySelector("div[data-feature-name='seriesBulletWidget'] a")
+  if (!details["Series"] && series != undefined) {
+    const match = series.textContent.trim().match(/Book (\d+) of \d+: (.+)/i);
+    if (match) {
+      details['Series'] = match[2];
+      details['Series Place'] = match[1];
+    }
+  }
 
   return details;
 }
