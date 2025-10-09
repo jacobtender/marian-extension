@@ -1,4 +1,4 @@
-import { getImageScore, logMarian, delay } from '../shared/utils.js';
+import { logMarian, delay, getCoverData } from '../shared/utils.js';
 
 async function getGoodreadsDetails() {
     logMarian('Extracting GoodReads details');
@@ -8,8 +8,7 @@ async function getGoodreadsDetails() {
     if (sourceId) bookDetails["Source ID"] = sourceId;
 
     const imgEl = document.querySelector('.BookCover__image img');
-    bookDetails["img"] = imgEl?.src ? getHighResImageUrl(imgEl.src) : null;
-    bookDetails["imgScore"] = imgEl?.src ? await getImageScore(imgEl.src) : 0;
+    const coverData = getCoverData(imgEl?.src);
     bookDetails["Title"] = document.querySelector('[data-testid="bookTitle"]')?.innerText.trim();
 
     const contributorsButton = document.querySelector('.ContributorLinksList button[aria-label="Show all contributors"]');
@@ -53,6 +52,7 @@ async function getGoodreadsDetails() {
     // logMarian("bookDetails", bookDetails);
 
     return {
+    ...(await coverData),
     ...bookDetails,
   };
 }

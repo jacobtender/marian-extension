@@ -1,4 +1,4 @@
-import { getImageScore, logMarian, delay } from '../shared/utils.js';
+import { logMarian, delay, getCoverData } from '../shared/utils.js';
 
 async function getStoryGraphDetails() {
     logMarian('Extracting The StoryGraph details');
@@ -6,8 +6,8 @@ async function getStoryGraphDetails() {
 
     // Book cover image
     const imgEl = document.querySelector('.book-cover img');
-    bookDetails["img"] = imgEl?.src ? getHighResImageUrl(imgEl.src) : null;
-    bookDetails["imgScore"] = imgEl?.src ? await getImageScore(imgEl.src) : 0;
+    const metaCover = document.querySelector('head meta[property="og:image"]');
+    const coverData = getCoverData([imgEl?.src, metaCover?.content]);
 
     // Source ID
     const sourceId = getStoryGraphBookIdFromUrl(window.location.href);
@@ -36,6 +36,7 @@ async function getStoryGraphDetails() {
     // logMarian("bookDetails", bookDetails);
 
     return {
+        ...(await coverData),
         ...bookDetails
     };
 }
@@ -144,11 +145,6 @@ async function extractEditionDescription(bookDetails) {
 
     const descriptionEl = document.querySelector('.blurb-pane .trix-content');
     bookDetails["Description"] = descriptionEl ? descriptionEl.innerText.trim() : null;
-}
-
-function getHighResImageUrl(src) {
-//   return src.replace(/\/compressed\.photo\./, '/');
-    return src
 }
 
 /**

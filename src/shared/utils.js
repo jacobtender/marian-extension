@@ -76,3 +76,40 @@ export function sendMessage(message) {
     await runtime.sendMessage(message, resolve);
   });
 }
+
+/**
+  * takes a cover URL, or a list of covers and returns the details of the one with the best score
+  *
+  * @typedef {{img: string, imgScore: number}} CoverObject image URL and image score
+  * @param {string | string[] | undefined} covers the cover URL, or a list of cover URLs
+  * @return {Promise<CoverObject>} the image URL and score of the best cover
+  */
+export async function getCoverData(covers) {
+  if (covers && covers.length === 0) {
+    covers = undefined;
+  }
+
+  if (!Array.isArray(covers)) {
+    // single URL was passed
+    const coverUrl = covers;
+    return {
+      img: coverUrl,
+      imgScore: coverUrl ? await getImageScore(coverUrl) : 0
+    }
+  }
+
+  // an array of images was passed in
+  const coversSettled = await Promise.allSettled(covers.map(getCoverData));
+  const coversObj = coversSettled
+    .filter(({ status }) => status === "fulfilled")
+    .map((res) => /**@type{CoverObject}*/(res.value));
+
+  // get the best one
+  const highestScoreCover = coversObj.reduce((highest, current) =>
+    current.imgScore > highest.imgScore ? current : highest
+  );
+
+  // logMarian("covers", { covers, coversObj, highestScoreCover });
+
+  return highestScoreCover;
+}

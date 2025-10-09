@@ -1,4 +1,4 @@
-import { getImageScore, logMarian } from '../shared/utils.js';
+import { getCoverData, logMarian } from '../shared/utils.js';
 
 const remapings = {
   'Auflage': 'Edition Information',
@@ -50,22 +50,7 @@ async function getCover() {
   const coverUrl = document.querySelector("img#ISBNcover")?.src || null;
   const largeUrl = coverUrl?.replace("cover", "gross"); // get large cover
 
-  // check large cover first
-  if (largeUrl) {
-    const largeScore = await getImageScore(largeUrl);
-    if (largeScore !== 0) {
-      return {
-        img: largeUrl,
-        imgScore: largeScore
-      }
-    }
-  }
-
-  // fallback to small
-  return {
-    img: coverUrl,
-    imgScore: coverUrl ? await getImageScore(coverUrl) : 0
-  }
+  return getCoverData([coverUrl, largeUrl]);
 }
 
 /** 

@@ -1,12 +1,11 @@
-import { getImageScore, logMarian, delay } from "../shared/utils.js";
+import { getCoverData, logMarian } from "../shared/utils.js";
 
 async function getLibroDetails() {
 	logMarian("Extracting Libro details");
 	const bookDetails = {};
 
 	const imggrab = document.querySelector('.audiobook-cover .book-cover-wrap img.book-cover');
-	bookDetails["img"] = imggrab?.src;
-	bookDetails["imgScore"] = imggrab?.src ? await getImageScore(imggrab.src) : 0;
+	const coverData = getCoverData(imggrab?.src);
 
 	// Title
 	getLibroBookTitle(bookDetails);
@@ -28,6 +27,7 @@ async function getLibroDetails() {
 
 	logMarian("Libro extraction complete:", bookDetails);
 	return {
+		...(await coverData),
 		...bookDetails,
 	};
 

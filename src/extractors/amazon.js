@@ -1,25 +1,25 @@
-import { getImageScore, logMarian, getFormattedText } from '../shared/utils.js';
+import { logMarian, getFormattedText, getCoverData } from '../shared/utils.js';
 const bookSeriesRegex = /^Book (\d+) of \d+$/i;
 
 const includedLabels = new Set([
-    'Contributors',
-    'Publisher',
-    'Publication date',
-    'Program Type',
-    'Language',
-    'Print length',
-    'Listening Length',
-    'ISBN-10',
-    'ISBN-13',
-    'ASIN',
-    'Series',
-    'Series Place'
-  ]);
+  'Contributors',
+  'Publisher',
+  'Publication date',
+  'Program Type',
+  'Language',
+  'Print length',
+  'Listening Length',
+  'ISBN-10',
+  'ISBN-13',
+  'ASIN',
+  'Series',
+  'Series Place'
+]);
 
 async function getAmazonDetails() {
   logMarian('Extracting Amazon details');
 
-  const imgEl = document.querySelector('#imgBlkFront, #landingImage');
+  const coverData = getCover();
   const bookDetails = getDetailBullets();
   const audibleDetails = getAudibleDetails();
   const contributors = extractAmazonContributors();
@@ -27,12 +27,10 @@ async function getAmazonDetails() {
   bookDetails["Edition Format"] = getSelectedFormat() || '';
   bookDetails["Title"] = document.querySelector('#productTitle')?.innerText.trim();
   bookDetails["Description"] = getBookDescription() || '';
-  bookDetails["img"] = imgEl?.src ? getHighResImageUrl(imgEl.src) : null;
-  bookDetails["imgScore"] = imgEl?.src ? await getImageScore(imgEl.src) : 0;
   bookDetails["Contributors"] = contributors;
-  
+
   if (bookDetails["Edition Format"]?.includes("Kindle")) {
-    bookDetails['Reading Format'] = 'Ebook'; 
+    bookDetails['Reading Format'] = 'Ebook';
   } else if (
     bookDetails["Edition Format"]?.toLowerCase().includes("audio") ||
     bookDetails["Edition Format"]?.toLowerCase().includes("audible") ||
@@ -54,16 +52,52 @@ async function getAmazonDetails() {
 
   // logMarian("bookDetails", bookDetails);
   // logMarian("audibleDetails", audibleDetails);
- 
+
   const mergedDetails = {
     ...bookDetails,
     ...audibleDetails,
+    ...(await coverData),
   };
 
   delete mergedDetails.Edition;
   delete mergedDetails.Version;
 
   return mergedDetails;
+}
+
+async function getCover() {
+  const imgEl = document.querySelector("#landingImage, #imgTagWrapperId img"); // same element
+  const imgEl2 = document.querySelector("#imgBlkFront");
+  const imgEl3 = document.querySelector("#ebooksImgBlkFront");
+  const imgAudible = document.querySelector('#audibleProductImage img');
+
+  const covers = new Set();
+
+  [imgEl, imgEl2, imgEl3, imgAudible].forEach(img => {
+    if (!img) return;
+    if (img) covers.add(img.src);
+
+    const dataset = img.dataset;
+    if (dataset) {
+      if (dataset.oldHires) covers.add(dataset.oldHires);
+      // add highest res dynamic
+      try {
+        const dynamicImage = JSON.parse(dataset.aDynamicImage);
+        const largest = Object.entries(dynamicImage).reduce((acc, [url, [height, width]]) => {
+          const currentScore = width * height;
+          return currentScore > acc.score ? { url, score: currentScore } : acc;
+        }, { url: null, score: 0 }).url;
+        if (largest) covers.add(largest);
+      } catch (err) {
+        logMarian('Error parsing dynamic image data:', err);
+      }
+    }
+  });
+
+  // get original image
+  covers.forEach((value) => value && covers.add(getHighResImageUrl(value)));
+
+  return getCoverData(Array.from(covers));
 }
 
 function getHighResImageUrl(src) {
@@ -177,12 +211,6 @@ function getAudibleDetails() {
       details[label] = value;
     }
   });
-
-  // Extract image (if available)
-  const imgEl = document.querySelector('#audibleProductImage img');
-  if (imgEl?.src) {
-    details.img = imgEl.src;
-  }
 
   return details;
 }

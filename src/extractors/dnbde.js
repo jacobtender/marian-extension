@@ -1,4 +1,4 @@
-import { getImageScore, logMarian, sendMessage, getFormattedText } from '../shared/utils.js';
+import { logMarian, sendMessage, getFormattedText, getCoverData } from '../shared/utils.js';
 
 const remapings = {
   'Ausgabe': 'Edition Information',
@@ -35,22 +35,7 @@ async function getCover(container) {
   const coverUrl = container.querySelector("img[title='Cover']")?.src || null;
   const largeUrl = coverUrl?.replace("size=", "sz="); // get large cover
 
-  // check large cover first
-  if (largeUrl) {
-    const largeScore = await getImageScore(largeUrl);
-    if (largeScore !== 0) {
-      return {
-        img: largeUrl,
-        imgScore: largeScore
-      }
-    }
-  }
-
-  // fallback to small
-  return {
-    img: coverUrl,
-    imgScore: coverUrl ? await getImageScore(coverUrl) : 0
-  }
+  return getCoverData([coverUrl, largeUrl]);
 }
 
 function extractTable(/**@type{HTMLTableElement}*/container) {

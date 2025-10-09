@@ -1,4 +1,4 @@
-import { getImageScore, logMarian, getFormattedText } from '../shared/utils.js';
+import { logMarian, getFormattedText, getCoverData } from '../shared/utils.js';
 
 const remapings = {
   "ISBN": "ISBN-10",
@@ -30,10 +30,7 @@ async function getCover() {
   /**@type{string|null}*/
   const coverUrl = document.querySelector(".artwork object")?.data || null;
 
-  return {
-    img: coverUrl,
-    imgScore: coverUrl ? await getImageScore(coverUrl) : 0
-  }
+  return getCoverData(coverUrl);
 }
 
 function extractTable(/**@type{HTMLTableElement}*/container) {

@@ -1,5 +1,5 @@
 // googlebooks.js
-import { getImageScore, logMarian, delay } from '../shared/utils.js';
+import { logMarian, getCoverData } from '../shared/utils.js';
 
 async function getGoogleBooksDetails() {
     logMarian('Extracting Google Books details');
@@ -11,8 +11,7 @@ async function getGoogleBooksDetails() {
     if (sourceId) bookDetails["Source ID"] = sourceId;
 
     // Extract cover image using volume ID
-    bookDetails["img"] = getGoogleBooksCoverUrl(sourceId);
-    bookDetails["imgScore"] = bookDetails["img"] ? await getImageScore(bookDetails["img"]) : 0;
+    const coverData = getCoverData(getGoogleBooksCoverUrl(sourceId));
 
     // Extract title
     bookDetails["Title"] = getGoogleBookTitle();
@@ -68,6 +67,7 @@ async function getGoogleBooksDetails() {
     logMarian("Google Books extraction complete:", bookDetails);
 
     return {
+        ...(await coverData),
         ...bookDetails,
     };
 }

@@ -1,4 +1,4 @@
-import { getImageScore, logMarian } from '../shared/utils.js';
+import { getCoverData, logMarian } from '../shared/utils.js';
 
 const remapings = {
   'Edition': 'Edition Information',
@@ -13,8 +13,7 @@ async function getIsbnSearchDetails() {
   const bookDetails = {};
 
   const imgEl = document.querySelector('.image img');
-  bookDetails["img"] = imgEl?.src || null;
-  bookDetails["imgScore"] = imgEl?.src ? await getImageScore(imgEl.src) : 0;
+  const coverData = getCoverData(imgEl?.src);
 
   const details = extractTable()
 
@@ -31,7 +30,7 @@ async function getIsbnSearchDetails() {
   bookDetails['Publication date'] = bookDetails['Publication date'] + "T00:00:00";
 
   if (bookDetails["Edition Format"]?.includes("Kindle")) {
-    bookDetails['Reading Format'] = 'Ebook'; 
+    bookDetails['Reading Format'] = 'Ebook';
   } else if (
     bookDetails["Edition Format"]?.toLowerCase().includes("audio") ||
     bookDetails["Edition Format"]?.toLowerCase().includes("audible") ||
@@ -48,6 +47,7 @@ async function getIsbnSearchDetails() {
   // logMarian("bookDetails", bookDetails);
 
   return {
+    ...(await coverData),
     ...bookDetails,
   };
 }

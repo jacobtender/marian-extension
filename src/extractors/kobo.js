@@ -1,4 +1,4 @@
-import { getImageScore, logMarian } from "../shared/utils.js";
+import { getCoverData, logMarian } from "../shared/utils.js";
 
 async function getKoboDetails() {
     logMarian("Extracting Kobo details");
@@ -6,8 +6,7 @@ async function getKoboDetails() {
 
     // image and imageScore
     const imggrab = document.querySelector('.item-image .image-actions img.cover-image');
-    bookDetails["img"] = imggrab.src ? getHighResImageUrl(imggrab.src) : null;
-    bookDetails["imgScore"] = imggrab?.src ? await getImageScore(imggrab.src) : 0;
+    const coverData = getCoverData(imggrab?.src); //, getHighResImageUrl(imggrab?.src)]) -- this function is not doing anything -- skipping
 
     // Source ID
     // const sourceId = getKoboIdFromUrl(window.location.href);
@@ -33,6 +32,7 @@ async function getKoboDetails() {
 
     logMarian("Kobo extraction complete:", bookDetails);
     return {
+        ...(await coverData),
         ...bookDetails,
     };
 
