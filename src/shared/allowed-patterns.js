@@ -13,6 +13,10 @@ const ALLOWED_PATTERNS = [
   /https:\/\/(?:www\.)?isbn\.de\/(buch|ebook|hoerbuch)\/((?:\d{3})?\d{9}(?:X|\d))\b/,
   /https:\/\/portal\.dnb\.de\/opac.*(simpleSearch|showFullRecord)/,
   /https:\/\/(?:www\.)?isbndb\.com\/book\/((?:\d{3})?\d{9}(?:X|x|\d))\b/,
+  /https:\/\/(?:www\.)?overdrive\.com\/media\/(\d+)\/.+/,
+  /https:\/\/share\.libbyapp\.com\/title\/(\d+)/,
+  /https:\/\/libbyapp\.com\/.+\/(\d+)/,
+  /https:\/\/school\.teachingbooks\.net\/.+?tid=(\d+)/,
 ];
 
 export function isAllowedUrl(url) {

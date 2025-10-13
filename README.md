@@ -16,6 +16,9 @@ Book pages on these sites are currently supported by Marian. To request support 
 - Google Books
 - The StoryGraph
 - Rakuten Kobo
+- OverDrive
+- TeachingBooks
+- Libby
 - Libro.fm
 - ISBNdb
 - ISBN Search 

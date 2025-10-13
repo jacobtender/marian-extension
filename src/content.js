@@ -8,6 +8,7 @@ import { getIsbnSearchDetails } from './extractors/isbnsearch.js'
 import { getIsbnDeDetails } from './extractors/isbnde.js';
 import { getDnbDeDetails } from './extractors/dnbde.js';
 import { getIsbnDbDetails } from './extractors/isbndb.js';
+import { getOverdriveDetails, getLibbyDetails, getTeachingBooksDetails } from './extractors/overdrive.js';
 import { logMarian } from './shared/utils.js';
 
 
@@ -24,6 +25,9 @@ async function getDetails() {
   if (url.includes('isbn.de')) return await getIsbnDeDetails();
   if (url.includes('dnb.de')) return await getDnbDeDetails();
   if (url.includes('isbndb')) return await getIsbnDbDetails();
+  if (url.includes('libbyapp')) return await getLibbyDetails();
+  if (url.includes('overdrive')) return await getOverdriveDetails();
+  if (url.includes('teachingbooks')) return await getTeachingBooksDetails();
   return {};
 }
 
