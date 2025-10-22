@@ -4,7 +4,8 @@
   "description": "Extracts book details from Amazon product pages. Created for the fine librarian corps of Hardcover.app.",
   "main": "background.js",
   "scripts": {
-    "build": "node build.js"
+    "build": "node build.js",
+    "update-groups": "node fetchGroups.js"
   },
   "repository": {
     "type": "git",
@@ -18,6 +19,7 @@
   },
   "homepage": "https://github.com/jacobtender/marian-extension#readme",
   "devDependencies": {
-    "esbuild": "^0.25.8"
+    "esbuild": "^0.25.8",
+    "xml2js": "^0.6.2"
   }
 }
