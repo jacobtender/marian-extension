@@ -235,8 +235,39 @@ export function renderDetails(details) {
     container.appendChild(metaTop);
   }
 
+  // Normalization
+
   if (details["Publication date"]) {
     details["Publication date"] = formatDate(details["Publication date"]);
+  }
+
+  if (details["Listening Length"] && details["Listening Length"].length >= 1) {
+    if (!Array.isArray(details["Listening Length"])) {
+      details["Listening Length"] = [details["Listening Length"]];
+    }
+
+    let valid = true;
+    let lengthSeconds = 0;
+    details["Listening Length"].forEach((item) => {
+      if (!valid) return; // don't bother going over the rest
+      const timeLower = item.toLowerCase();
+      const timeAmount = parseInt(item); // ignores text after number
+
+      if (timeLower.includes("hours")) {
+        lengthSeconds += timeAmount * 60 * 60;
+      } else if (timeLower.includes("minutes")) {
+        lengthSeconds += timeAmount * 60;
+      } else if (timeLower.includes("seconds")) {
+        lengthSeconds += timeAmount;
+      } else {
+        valid = false; // encountered unknown unit
+        return;
+      }
+    });
+
+    if (valid) {
+      details["Listening Length Seconds"] = lengthSeconds;
+    }
   }
 
   const hr = document.createElement('hr');
@@ -251,6 +282,7 @@ export function renderDetails(details) {
     'Publisher',
     'Reading Format',
     'Listening Length',
+    'Listening Length Seconds',
     'Pages',
     'Edition Format',
     'Edition Information',
