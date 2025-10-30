@@ -114,3 +114,11 @@ You can also download prebuilt versions from the [latest GitHub Release](https:/
 
 1. Download and extract the `.zip` file for your browser.
 2. Follow the same steps as **Option 1**, but select the extracted folder instead of `distro/`.
+
+### Updating the groups json file
+
+In the event where a new group is registered, the [groups.json](./src/shared/groups.json) file can be updating by running
+
+```bash
+npm run update-groups
+```

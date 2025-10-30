@@ -42,8 +42,6 @@ async function getIsbnSearchDetails() {
     bookDetails['Reading Format'] = 'Physical Book';
   }
 
-  // TODO: get language from ISBN
-
   // logMarian("bookDetails", bookDetails);
 
   return {

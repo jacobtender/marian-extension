@@ -19,8 +19,6 @@ async function getIsbnDeDetails() {
 
   const details = extractTable()
 
-  // TODO: get language from ISBN
-
   // logMarian("bookDetails", { ...bookDetails, ...details });
 
   return {
