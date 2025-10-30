@@ -163,7 +163,7 @@ function extractSeriesInfo(bookDetails) {
  * Extracts the Goodreads book ID from a Goodreads book URL.
  */
 function getGoodreadsBookIdFromUrl(url) {
-  const regex = /goodreads\.com\/book\/show\/(\d+)(?:[.\-/]|$)/i;
+  const regex = /goodreads\.com\/(?:\w+\/)?book\/show\/(\d+)(?:[.\-/]|$)/i;
   const match = url.match(regex);
   return match ? match[1] : null;
 }
