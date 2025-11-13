@@ -1,6 +1,45 @@
 import { tryGetDetails } from "./messaging.js";
 import { isAllowedUrl } from "../shared/allowed-patterns.js";
-import { normalizeUrl, setLastFetchedUrl, getLastFetchedUrl } from "./utils.js";
+import { normalizeUrl, setLastFetchedUrl, getLastFetchedUrl, SetupSettings } from "./utils.js";
+
+const settingsManager = SetupSettings(document.querySelector("#settings"), {
+  hyphenateIsbn: {
+    type: "selection", label: "Hyphenate ISBNs", options: {
+      // yes: "Yes",
+      no: "No (Hardcover)", none: "Leave Alone"
+    }, default: "none"
+  },
+  filterNonHardcover: { type: "toggle", label: "Filter out non hardcover fields", default: false },
+  dateFormat: { type: "selection", label: "Format date", default: "local", options: { local: `Local format (${getLocalDateFormat()})`, ymd: "yyyy-mm-dd", dmy: "dd/mm/yyyy", mdy: "mm/dd/yyyy" } },
+  keepFields: { type: "selection", label: "Always display non present hardcover fields", options: { yes: "Yes", no: "No", none: "Leave Alone" }, default: "none" },
+});
+
+const orderedKeys = [
+  'ISBN-10',
+  'ISBN-13',
+  'ASIN',
+  'Source ID',
+  'Contributors',
+  'Publisher',
+  'Reading Format',
+  'Listening Length',
+  'Listening Length Seconds',
+  'Pages',
+  'Edition Format',
+  'Edition Information',
+  'Publication date',
+  'Language',
+  'Country'
+];
+const hardcoverKeys = [ // for filtering
+  "Title",
+  "Description",
+  "Series",
+  "Series Place",
+  "img",
+  "imgScore",
+  ...orderedKeys,
+]
 
 // DOM refs (looked up when functions are called)
 function statusBox() { return document.getElementById('status'); }
@@ -18,13 +57,46 @@ function copyToClipboard(text, labelEl) {
   });
 }
 
-function formatDate(dateStr) {
+
+function formatDate(dateStr, format = "local") {
   const date = new Date(dateStr);
-  if (!isNaN(date)) {
-    // navigator.language should always be set, but adding a fallback just in case
-    return new Intl.DateTimeFormat(navigator.language || "en-US").format(date);
+
+  if (isNaN(date)) {
+    return dateStr;
   }
-  return dateStr;
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  switch (format) {
+    case 'ymd':
+      return `${year}-${month}-${day}`;
+    case 'dmy':
+      return `${day}/${month}/${year}`;
+    case 'mdy':
+      return `${month}/${day}/${year}`;
+    case 'local': // fall through
+    default:
+      // navigator.language should always be set, but adding a fallback just in case
+      return new Intl.DateTimeFormat(navigator.language || "en-US").format(date);
+  }
+}
+
+function getLocalDateFormat() {
+  const date = new Date(2025, 3, 8); // 2025-04-08
+  const formatted = new Intl.DateTimeFormat(navigator.language || "en-US").format(date);
+
+  // Replace the actual values with format placeholders
+  let pattern = formatted
+    .replace('2025', 'yyyy')
+    .replace('25', 'yy')
+    .replace('04', 'mm')
+    .replace('4', 'm')
+    .replace('08', 'dd')
+    .replace('8', 'd');
+
+  return pattern;
 }
 
 function downloadImage(url, bookId) {
@@ -116,8 +188,136 @@ function renderRow(container, key, value) {
   container.appendChild(div);
 }
 
-export function renderDetails(details) {
+function normalizeDetails(details, settings, inplace = true) {
+  if (!inplace) {
+    details = { ...details }; // shallow clone
+  }
+
+  // normalize
+
+  // Insert country (or language) from ISBN if not present
+  // See pr #70
+
+  // Add listening length in seconds
+  if (details["Listening Length"] && details["Listening Length"].length >= 1) {
+    if (!Array.isArray(details["Listening Length"])) {
+      details["Listening Length"] = [details["Listening Length"]];
+    }
+
+    let valid = true;
+    let lengthSeconds = 0;
+    details["Listening Length"].forEach((item) => {
+      if (!valid) return; // don't bother going over the rest
+      const timeLower = item.toLowerCase();
+      const timeAmount = parseInt(item); // ignores text after number
+
+      if (timeLower.includes("hours")) {
+        lengthSeconds += timeAmount * 60 * 60;
+      } else if (timeLower.includes("minutes")) {
+        lengthSeconds += timeAmount * 60;
+      } else if (timeLower.includes("seconds")) {
+        lengthSeconds += timeAmount;
+      } else {
+        valid = false; // encountered unknown unit
+        return;
+      }
+    });
+
+    if (valid) {
+      details["Listening Length Seconds"] = lengthSeconds;
+    }
+  }
+
+
+  // apply settings
+
+  // format date
+  if (details["Publication date"]) {
+    details["Publication date"] = formatDate(details["Publication date"], settings.dateFormat);
+  }
+
+  // Correct hyphenation on ISBNs according to settings
+  if (settings.hyphenateIsbn === "no") {
+    if (details["ISBN-10"]) details["ISBN-10"] = details["ISBN-10"].replaceAll("-", "");
+    if (details["ISBN-13"]) details["ISBN-13"] = details["ISBN-13"].replaceAll("-", "");
+  } else if (settings.hyphenateIsbn === "yes") {
+    throw "Not implemented";
+  }
+
+  // filter out non hardcover
+  if (settings.filterNonHardcover) {
+    Object.keys(details).forEach((key) => {
+      if (!hardcoverKeys.includes(key)) {
+        delete details[key];
+      }
+    });
+  }
+
+  // add or remove fields even if they are not set
+  if (settings.keepFields === "no") {
+    Object.keys(details).forEach((key) => {
+      // ignore non hardcover fields
+      if (!hardcoverKeys.includes(key)) return;
+
+      if (details[key] == undefined) {
+        delete details[key];
+      }
+    });
+  } else if (settings.keepFields === "yes") {
+    // fill in non present fields
+    hardcoverKeys.forEach((key) => {
+      if (details["Reading Format"] != "Audiobook") {
+        // book don't add audiobook fields
+        if (key === "Listening Length") return;
+        if (key === "Listening Length Seconds") return;
+      } else {
+        // audiobook, don't add book fields 
+        if (key === "Pages") return;
+      }
+
+      details[key] ??= null;
+    });
+  }
+
+  return details;
+}
+
+export async function renderDetails(details) {
+  // get settings
+  const settings = await settingsManager.get();
+
+  renderDetailsWithSettings(details, settings);
+
+  const container = detailsBox();
+  if (!container) return;
+
+  // Create a unique marker element to track if this render is still active
+  const markerId = `details-marker-${Date.now()}-${Math.random()}`;
+  const marker = document.createElement('span');
+  marker.id = markerId;
+  marker.style.display = 'none';
+  container.appendChild(marker);
+
+  const unsub = settingsManager.subscribe((changes) => {
+    // Check if marker still exists (component still mounted)
+    if (!document.getElementById(markerId)) {
+      unsub();
+      return;
+    }
+
+    // update settings
+    Object.entries(changes).forEach(([setting, { newValue }]) => settings[setting] = newValue);
+
+    renderDetailsWithSettings(details, settings);
+    container.appendChild(marker);
+  });
+}
+
+function renderDetailsWithSettings(details, settings = {}) {
+  details = normalizeDetails(details, settings, false);
   console.log('[Extension] Rendering details:', details);
+  console.log('[Extension] Rendering settings:', settings);
+
   const container = detailsBox();
   if (!container) return;
   container.innerHTML = ""; // safety clear 
@@ -235,60 +435,8 @@ export function renderDetails(details) {
     container.appendChild(metaTop);
   }
 
-  // Normalization
-
-  if (details["Publication date"]) {
-    details["Publication date"] = formatDate(details["Publication date"]);
-  }
-
-  if (details["Listening Length"] && details["Listening Length"].length >= 1) {
-    if (!Array.isArray(details["Listening Length"])) {
-      details["Listening Length"] = [details["Listening Length"]];
-    }
-
-    let valid = true;
-    let lengthSeconds = 0;
-    details["Listening Length"].forEach((item) => {
-      if (!valid) return; // don't bother going over the rest
-      const timeLower = item.toLowerCase();
-      const timeAmount = parseInt(item); // ignores text after number
-
-      if (timeLower.includes("hours")) {
-        lengthSeconds += timeAmount * 60 * 60;
-      } else if (timeLower.includes("minutes")) {
-        lengthSeconds += timeAmount * 60;
-      } else if (timeLower.includes("seconds")) {
-        lengthSeconds += timeAmount;
-      } else {
-        valid = false; // encountered unknown unit
-        return;
-      }
-    });
-
-    if (valid) {
-      details["Listening Length Seconds"] = lengthSeconds;
-    }
-  }
-
   const hr = document.createElement('hr');
   container.appendChild(hr);
-
-  const orderedKeys = [
-    'ISBN-10',
-    'ISBN-13',
-    'ASIN',
-    'Source ID',
-    'Contributors',
-    'Publisher',
-    'Reading Format',
-    'Listening Length',
-    'Listening Length Seconds',
-    'Pages',
-    'Edition Format',
-    'Edition Information',
-    'Publication date',
-    'Language'
-  ];
 
   const rendered = new Set(['Series', 'Series Place']);
   orderedKeys.forEach(key => {
@@ -369,9 +517,9 @@ export function addRefreshButton(onClick) {
     showStatus("Refreshing...");
 
     tryGetDetails()
-      .then(details => {
+      .then(async (details) => {
         showDetails();
-        renderDetails(details);
+        await renderDetails(details);
 
         // 👇 After refreshing, set last fetched & disable if same tab
         chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
