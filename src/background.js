@@ -1,7 +1,7 @@
 import { isAllowedUrl } from "./shared/allowed-patterns";
-import { runtime } from "./shared/utils"
+import { runtime, StorageBackedSet } from "./shared/utils"
 
-const activeSidebarWindows = new Set();
+const activeSidebarWindows = new StorageBackedSet("active_sidebar_windows");
 
 function updateIcon(tabId, isAllowed) {
   chrome.action.setIcon({
@@ -83,7 +83,7 @@ function sendWhenReady(msg, retries = 10, delay = 150) {
 }
 
 function hasActiveSidebar(windowId) {
-  return typeof windowId === "number" && activeSidebarWindows.has(windowId);
+  return typeof windowId === "number" && activeSidebarWindows.hasSync(windowId);
 }
 
 function showUnsupportedNotification(tab) {
@@ -136,10 +136,10 @@ chrome.tabs.onActivated.addListener(() => {
 });
 
 // Listen for messages from the content script.
-runtime.onMessage.addListener((request, sender, sendResponse) => {
+runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   if (request?.type === "SIDEBAR_READY") {
     if (typeof request.windowId === "number") {
-      activeSidebarWindows.add(request.windowId);
+      await activeSidebarWindows.add(request.windowId);
     }
     if (typeof sendResponse === "function") sendResponse(true);
     return false;
@@ -147,7 +147,7 @@ runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request?.type === "SIDEBAR_UNLOADED") {
     if (typeof request.windowId === "number") {
-      activeSidebarWindows.delete(request.windowId);
+      await activeSidebarWindows.delete(request.windowId);
     }
     if (typeof sendResponse === "function") sendResponse(true);
     return false;
@@ -160,8 +160,8 @@ runtime.onMessage.addListener((request, sender, sendResponse) => {
   return false;
 });
 
-chrome.windows.onRemoved.addListener((windowId) => {
-  activeSidebarWindows.delete(windowId);
+chrome.windows.onRemoved.addListener(async (windowId) => {
+  await activeSidebarWindows.delete(windowId);
 });
 
 async function handleFetchRequest(url) {

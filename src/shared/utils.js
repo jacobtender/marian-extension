@@ -200,3 +200,5 @@ export async function getCoverData(covers) {
 
   return highestScoreCover;
 }
+
+export { StorageBackedSet } from "./StorageSet";
