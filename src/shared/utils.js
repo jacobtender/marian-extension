@@ -25,6 +25,12 @@ export function logMarian(message, object = null) {
   }
 }
 
+/**
+ * Returns a promise waiting a timeout in milliseconds
+ *
+ * @param {number} ms - time to wait in milliseconds
+ * @returns {Promise<None>}
+ */
 export function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -228,6 +234,7 @@ export function remapKeys(mapping, object) {
  * @param {contributor[]} contributors - list of contributors
  * @param {string} name - name of the contributor 
  * @param {string | string[]} roles - a role or list of roles to add to a contributor
+ * @returns {contributor[]}
  */
 export function addContributor(contributors, name, roles) {
   if (!Array.isArray(roles)) {

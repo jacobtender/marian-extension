@@ -1,6 +1,6 @@
 // googlebooks.js
 import { Extractor } from './AbstractExtractor.js';
-import { logMarian, getCoverData, cleanText, normalizeReadingFormat, collectObject, queryDeep, queryAllDeep, getFormattedText, addContributor } from '../shared/utils.js';
+import { logMarian, getCoverData, cleanText, normalizeReadingFormat, collectObject, queryDeep, queryAllDeep, getFormattedText, addContributor, clearDeepQueryCache } from '../shared/utils.js';
 
 const KNOWN_HOSTS = ['g-expandable-content'];
 
@@ -35,6 +35,7 @@ class googleBooksScraper extends Extractor {
 
 function getGoogleBooksDetails() {
     const bookDetails = {};
+    clearDeepQueryCache();
 
     // Extract title
     bookDetails["Title"] = getGoogleBookTitle();

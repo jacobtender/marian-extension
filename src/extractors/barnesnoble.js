@@ -1,14 +1,9 @@
 import { Extractor } from "./AbstractExtractor.js"
-import { logMarian, getFormattedText, getCoverData, addContributor, cleanText, normalizeReadingFormat, collectObject } from '../shared/utils.js';
+import { logMarian, getFormattedText, getCoverData, addContributor, normalizeReadingFormat, collectObject } from '../shared/utils.js';
 
 
-const MODAL_DELAY = 1500;
-const REGEX_HOURS = /(\d+)\s*h/;
-const REGEX_MINUTES = /(\d+)\s*m/;
 const REGEX_SERIES_PLACE = /#(\d+)/;
 const REGEX_BRACKET_CONTENT = /\([^()]*\)/;
-const SECONDS_IN_HOUR = 3600;
-const SECONDS_IN_MINUTE = 60;
 
 class barnesAndNobleScraper extends Extractor {
   get _name() { return "Barnes & Noble Extractor"; }
@@ -21,16 +16,17 @@ class barnesAndNobleScraper extends Extractor {
     logMarian('Extracting Barnes & Noble details');
     const bookDetails = getProductDetails();
 
-    bookDetails['Reading Format'] = getSelectedFormat();
+    bookDetails['Edition Format'] = getSelectedFormat();
+    bookDetails['Reading Format'] = normalizeReadingFormat(bookDetails["Edition Format"]);
     bookDetails['Title'] = document.querySelector('h1').textContent.trim();
     bookDetails['Contributors'] = getContributors();
 
-    return {
-      ...(await getCover()),
-      ...(await getBookDescription()),
-      ...getAudioBookTimes(),
-      ...bookDetails,
-    };
+    return collectObject([
+      getCover(),
+      getBookDescription(),
+      getAudioBookTimes(),
+      bookDetails,
+    ]);
   }
 }
 
@@ -65,39 +61,23 @@ function getContributors() {
 
       switch (contributorRole) {
         case 'Read by':
-          contributors.push({
-            name: contributorName,
-            roles: ['Narrator'],
-          });
+          contributorRole = 'Narrator'
           break;
         case 'Artist':
-          contributors.push({
-            name: contributorName,
-            roles: ['Illustrator'],
-          });
+          contributorRole = 'Illustrator'
           break;
         case undefined:
-          contributors.push({
-            name: contributorName,
-            roles: ['Author'],
-          });
+          contributorRole = 'Author'
           break;
-        default:
-          contributors.push({
-            name: contributorName,
-            roles: [contributorRole],
-          });
       }
+      addContributor(contributors, contributorName, contributorRole);
     }
   }
 
   if (rawNarrators) {
     for (let i = 0; i < rawNarrators?.children.length; i++) {
       if (rawNarrators.children[i].nodeName == 'A') {
-        contributors.push({
-          name: rawNarrators.children[i].text,
-          roles: ['Narrator'],
-        });
+        addContributor(contributors, rawNarrators.children[i].text, 'Narrator');
       }
     }
   }
@@ -159,17 +139,8 @@ function getProductDetails() {
 async function getBookDescription() {
   const description = {};
 
-  const readFullOverviewButton = document.querySelector('.read-full-ov');
-
-  if (readFullOverviewButton) {
-    readFullOverviewButton.click();
-    await delay(MODAL_DELAY);
-    const overview = document.querySelector('#overview-content');
-    description['Description'] = getFormattedText(overview);
-  } else {
-    const overview = document.querySelector('.overview-cntnt');
-    description['Description'] = getFormattedText(overview);
-  }
+  const descriptionElement = document.querySelector("[itemprop='description']");
+  description['Description'] = getFormattedText(descriptionElement);
 
   return description;
 }
@@ -179,19 +150,7 @@ function getSelectedFormat() {
     '.otherAvailFormats .selected-format-chiclet p span'
   )?.innerText;
 
-  if (
-    edition.toLowerCase() == 'paperback' ||
-    edition.toLowerCase() == 'hardcover'
-  ) {
-    return 'Physical Book';
-  } else if (
-    edition.toLowerCase().includes('cd') ||
-    edition.toLowerCase().includes('mp3')
-  ) {
-    return 'Audiobook';
-  } else {
-    return edition || null;
-  }
+  return edition;
 }
 
 function getAudioBookTimes() {
@@ -201,26 +160,11 @@ function getAudioBookTimes() {
   const audiobook = {};
 
   if (rawAudiobookTime) {
-    const time = rawAudiobookTime
-      .substring(rawAudiobookTime.indexOf('—') + 1)
-      .replace(',', '');
-    const hours = REGEX_HOURS.exec(time);
-    const minutes = REGEX_MINUTES.exec(time);
-    let totalTimeSeconds = 0;
+    let [abridgedness, time] = rawAudiobookTime.split('—').map(a => a.trim());
+    time = time.split(',');
 
-    if (hours) {
-      totalTimeSeconds += hours * SECONDS_IN_HOUR;
-    }
-
-    if (minutes) {
-      totalTimeSeconds += minutes * SECONDS_IN_MINUTE;
-    }
-
-    audiobook['Listening Length'] = time.trim();
-
-    if (totalTimeSeconds) {
-      audiobook['Listening Length Seconds'] = totalTimeSeconds;
-    }
+    audiobook['Edition Information'] = abridgedness;
+    audiobook['Listening Length'] = time;
   }
 
   return audiobook;

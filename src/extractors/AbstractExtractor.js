@@ -7,9 +7,12 @@ const storageAPI = (typeof browser !== 'undefined' ? browser : chrome)?.storage;
  * @class Extractor
  */
 class Extractor {
+  /** the name of the extractor */
   get _name() { return "<Abstract Extractor>" }
-  /**@type{RegExp[]}*/
+  /** the list of regexes that the extractor supports and will work on
+   * @type{RegExp[]}*/
   _sitePatterns = [];
+  /** sets if the extractor requires a page reload before scraping */
   needsReload = true;
   _state = {};
 
@@ -48,6 +51,8 @@ class Extractor {
 
 
   /**
+   * Check if the provided url is supported for scraping
+   *
    * @param {string} url
    * @returns {boolean} if the provided url is supported
    */
@@ -56,6 +61,8 @@ class Extractor {
   }
 
   /**
+   * Extract info from the current page, return a object with the details
+   *
    * @returns {Promise<Record<string, any>>}
    * @abstract
    */
@@ -67,8 +74,20 @@ class Extractor {
     return this._name;
   }
 
+  /**
+   * implement this to get updates to the state, gets called on extractor creation
+   *
+   * @param {any} state - the updated state
+   * @abstract
+   */
   _handleStateUpdate(state) { }
 
+  /**
+   * implement this to get updates to the state, gets called on extractor creation
+   *
+   * @param {any} state - the updated state
+   * @abstract
+   */
   async _saveState(state) {
     if (state == undefined) {
       state = this._state;
