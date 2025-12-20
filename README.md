@@ -116,3 +116,26 @@ You can also download prebuilt versions from the [latest GitHub Release](https:/
 
 1. Download and extract the `.zip` file for your browser.
 2. Follow the same steps as **Option 1**, but select the extracted folder instead of `distro/`.
+
+
+#### Development
+
+To run the extensions in development mode, the below commands can be used depending on the desired browser:
+
+```shell
+# Chrome
+npm run dev:chrome
+```
+
+```shell
+# Firefox
+npm run dev:firefox
+```
+
+This will load the temporary extension in development mode and allow for hot reloading when making changes.
+
+This is not intended for general usage due to the extension being loaded as a temporary / unpacked extension like Option 1 above.
+
+Environment-speciifc configuration can be modified by copying `.env.example` to `.env` and setting the necessary values (e.g. the binary name or version for the browser).
+
+Custom start URLs (comma-separated) can also be specified there to allow for faster iteration.
