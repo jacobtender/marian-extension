@@ -78,7 +78,7 @@ chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
       showDetails();
       const detailsEl = document.getElementById('details');
       if (detailsEl) detailsEl.innerHTML = "";
-      renderDetails(details);
+      await renderDetails(details);
 
       setLastFetchedUrl(tab?.url || "");
       getCurrentTab().then((activeTab) => {
