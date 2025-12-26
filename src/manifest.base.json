@@ -9,6 +9,7 @@
 	},
 	"homepage_url": "https://hardcover.app/join?referrer_id=8753",
 	"host_permissions": [
+		"https://s3.amazonaws.com/*",
 		"https://www.amazon.com/*",
 		"https://www.amazon.co.uk/*",
 		"https://www.amazon.com.au/*",
@@ -105,6 +106,7 @@
 		"https://www.isbn.de/*",
 		"https://isbn.de/*",
 
+		"https://www.romance.io/books/*",
 		"https://www.barnesandnoble.com/*"
 	],
 	"icons": {
