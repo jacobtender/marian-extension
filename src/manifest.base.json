@@ -105,6 +105,9 @@
 		"https://www.isbn.de/*",
 		"https://isbn.de/*",
 
+		"https://images-us.bookshop.org/ingram/*",
+		"https://bookshop.org/p/books/*",
+
 		"https://www.barnesandnoble.com/*"
 	],
 	"icons": {
