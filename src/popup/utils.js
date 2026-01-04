@@ -10,6 +10,39 @@ export function getLastFetchedUrl() {
   return __lastFetchedNorm;
 }
 
+let sidebarWindowId = null;
+
+export function rememberWindowId(windowInfo) {
+  if (windowInfo && typeof windowInfo.id === "number") {
+    sidebarWindowId = windowInfo.id;
+  }
+}
+
+export function notifyBackground(type, params = {}) {
+  if (type === "SIDEBAR_UNLOADED" && typeof sidebarWindowId === "number") {
+    chrome.runtime.sendMessage({ type, windowId: sidebarWindowId }, () => {
+      void chrome.runtime.lastError;
+    });
+    return;
+  }
+
+  chrome.windows.getCurrent((windowInfo) => {
+    rememberWindowId(windowInfo);
+    const windowId = typeof sidebarWindowId === "number" ? sidebarWindowId : windowInfo?.id;
+    chrome.runtime.sendMessage({ type, windowId, ...params }, () => {
+      // ignore missing listeners; background may be sleeping in some contexts
+      void chrome.runtime.lastError;
+    });
+  });
+}
+
+export function isForThisSidebar(messageWindowId) {
+  if (typeof messageWindowId !== "number") return true;
+  if (typeof sidebarWindowId !== "number") return false;
+  return messageWindowId === sidebarWindowId;
+}
+
+
 export function buildIssueUrl(tabUrl) {
   let domain = '(unknown domain)';
   try { domain = new URL(tabUrl).hostname.replace(/^www\./, ''); } catch { }

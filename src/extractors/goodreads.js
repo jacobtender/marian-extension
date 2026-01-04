@@ -1,5 +1,5 @@
 import { Extractor } from './AbstractExtractor.js';
-import { logMarian, delay, getCoverData, addContributor, cleanText, normalizeReadingFormat, collectObject } from '../shared/utils.js';
+import { logMarian, delay, getCoverData, addContributor, cleanText, normalizeReadingFormat, collectObject, getFormattedText } from '../shared/utils.js';
 
 class goodreadsScraper extends Extractor {
   get _name() { return "GoodReads Extractor"; }
@@ -56,7 +56,7 @@ async function getGoodreadsDetails() {
     }
   }
   const descriptionEl = document.querySelector('[data-testid="contentContainer"] .Formatted');
-  bookDetails["Description"] = descriptionEl ? cleanText(descriptionEl.innerText) : null;
+  bookDetails["Description"] = descriptionEl ? getFormattedText(descriptionEl) : null;
 
   bookDetails['Reading Format'] = normalizeReadingFormat(bookDetails["Edition Format"]);
 
