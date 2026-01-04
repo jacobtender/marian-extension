@@ -26,6 +26,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm' # enable caching for npm
 
       - name: Install dependencies
         run: npm ci
@@ -35,12 +36,20 @@ jobs:
         run: |
           echo "REPO_NAME=$(basename ${{ github.repository }})" >> $GITHUB_ENV
           echo "RELEASE_TAG=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
+          echo "ARTIFACT_SUFFIX=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
 
       - name: Set environment variables (manual)
         if: github.event_name == 'workflow_dispatch'
         run: |
           echo "REPO_NAME=$(basename ${{ github.repository }})" >> $GITHUB_ENV
           echo "RELEASE_TAG=${{ github.event.inputs.release_tag }}" >> $GITHUB_ENV
+          echo "ARTIFACT_SUFFIX=${{ github.event.inputs.release_tag }}" >> $GITHUB_ENV
+
+      - name: Set environment variables (push)
+        if: github.event_name == 'push'
+        run: |
+          echo "REPO_NAME=$(basename ${{ github.repository }})" >> $GITHUB_ENV
+          echo "ARTIFACT_SUFFIX=dev-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
       - name: Build extension
         run: npm run build
@@ -53,8 +62,22 @@ jobs:
           (cd firefox && zip -r ../firefox.zip .)
           cd ..
           mkdir -p packaged
-          mv distro/chrome.zip "packaged/${REPO_NAME}-chrome.${RELEASE_TAG}.zip"
-          mv distro/firefox.zip "packaged/${REPO_NAME}-firefox.${RELEASE_TAG}.zip"
+          mv distro/chrome.zip "packaged/${REPO_NAME}-chrome.${ARTIFACT_SUFFIX}.zip"
+          mv distro/firefox.zip "packaged/${REPO_NAME}-firefox.${ARTIFACT_SUFFIX}.zip"
+
+      - name: Upload Chrome Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.REPO_NAME }}-chrome.${{ env.ARTIFACT_SUFFIX }}
+          path: distro/chrome
+          retention-days: 90
+
+      - name: Upload Firefox Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.REPO_NAME }}-firefox.${{ env.ARTIFACT_SUFFIX }}
+          path: distro/firefox
+          retention-days: 90
 
       - name: Upload zips to release
         if: github.event_name == 'release'
@@ -69,7 +92,7 @@ jobs:
         if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
         uses: mnao305/chrome-extension-upload@v5.0.0
         with:
-          file-path: packaged/${{ env.REPO_NAME }}-chrome.${{ env.RELEASE_TAG }}.zip
+          file-path: packaged/${{ env.REPO_NAME }}-chrome.${{ env.ARTIFACT_SUFFIX }}.zip
           extension-id: ${{ secrets.EXTENSION_ID }}
           client-id: ${{ secrets.CLIENT_ID }}
           client-secret: ${{ secrets.CLIENT_SECRET }}
