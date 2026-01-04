@@ -1,6 +1,7 @@
 import { tryGetDetails } from "./messaging.js";
 import { isAllowedUrl, normalizeUrl } from "../extractors";
 import { setLastFetchedUrl, getLastFetchedUrl, getCurrentTab } from "./utils.js";
+import { searchIsbn } from "../shared/getGroup.js";
 
 // DOM refs (looked up when functions are called)
 function statusBox() { return document.getElementById('status'); }
@@ -257,6 +258,22 @@ export function renderDetails(details) {
     details["Publication date"] = formatDate(details["Publication date"]);
   }
 
+  // Insert country (or language) from ISBN if not present
+  const isbn = details["ISBN-13"] || details["ISBN-10"];
+  if (isbn != undefined) {
+    try {
+      const groupName = searchIsbn(isbn);
+      if (groupName != undefined) {
+        if (groupName.toLowerCase().endsWith("language")) {
+          const language = groupName.split("language")[0].trim();
+          details["Language"] = details["Language"] || language
+        } else {
+          details["Country"] = details["Country"] || groupName
+        }
+      }
+    } catch { }
+  }
+
   if (details["Listening Length"] && details["Listening Length"].length >= 1) {
     if (!Array.isArray(details["Listening Length"])) {
       details["Listening Length"] = [details["Listening Length"]];
@@ -303,7 +320,8 @@ export function renderDetails(details) {
     'Edition Format',
     'Edition Information',
     'Publication date',
-    'Language'
+    'Language',
+    'Country'
   ];
 
   const rendered = new Set(['Series', 'Series Place']);
