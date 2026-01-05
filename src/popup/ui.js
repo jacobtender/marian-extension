@@ -1,6 +1,6 @@
 import { tryGetDetails } from "./messaging.js";
 import { isAllowedUrl, normalizeUrl } from "../extractors";
-import { setLastFetchedUrl, getLastFetchedUrl, getCurrentTab } from "./utils.js";
+import { setLastFetchedUrl, getLastFetchedUrl, getCurrentTab, notifyBackground } from "./utils.js";
 
 // DOM refs (looked up when functions are called)
 function statusBox() { return document.getElementById('status'); }
@@ -385,23 +385,28 @@ export function addRefreshButton() {
     showStatus("Refreshing...");
 
     const tab = await getCurrentTab();
-    try {
-      const details = await tryGetDetails(tab)
-      showDetails();
-      renderDetails(details);
-
-      // 👇 After refreshing, set last fetched & disable if same tab
-      setLastFetchedUrl(tab?.url || "");
-      getCurrentTab().then((activeTab) => {
-        updateRefreshButtonForUrl(activeTab?.url || "");
-      });
-    } catch (err) {
-      showStatus(err);
-      notifyBackground("REFRESH_ICON", { tab });
-    }
+    await getDetailsForTab(tab);
   });
 
   container.prepend(btn);
+}
+
+async function getDetailsForTab(tab) {
+  try {
+    const details = await tryGetDetails(tab)
+    showDetails();
+    renderDetails(details);
+
+    // 👇 After refreshing, set last fetched & disable if same tab
+    setLastFetchedUrl(tab?.url || "");
+    getCurrentTab().then((activeTab) => {
+      updateRefreshButtonForUrl(activeTab?.url || "");
+    });
+  } catch (err) {
+    console.error("fetch details fail", err);
+    showStatus("An issue occurred when fetching data");
+    notifyBackground("REFRESH_ICON", { tab });
+  }
 }
 
 export function updateRefreshButtonForUrl(url) {
@@ -442,3 +447,29 @@ export function checkActiveTabAndUpdateButton() {
     updateRefreshButtonForUrl(tab?.url || "");
   });
 }
+
+// Listener for request permissions button
+document.addEventListener("click", function(event) {
+  const btn = event.target.closest("button");
+  if (!btn) return;
+
+  if (btn.id === "permGrant" && btn.dataset.origin && btn.dataset.tabId) {
+    const origin = btn.dataset.origin;
+    const tabId = Number(btn.dataset.tabId);
+    if (Number.isNaN(tabId) || btn.dataset.tabId.trim() === "") return // invalid id
+
+    chrome.permissions.request({ origins: [origin] }, (granted) => {
+      if (!granted) {
+        showStatus("Permissions denied. Cannot proceed.");
+        return;
+      }
+
+      // Retry immediately
+      showStatus("Permissions granted. Reloading...");
+      chrome.tabs.get(tabId, async (tab) => {
+        debugger;
+        await getDetailsForTab(tab);
+      });
+    });
+  }
+});

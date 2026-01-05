@@ -64,7 +64,7 @@ export async function tryGetDetails(tab, retries = 8, delay = 300) {
 
         if (wantsReload && !hasReloaded) {
           hasReloaded = true;
-          chrome.tabs.reload(tab.id, { bypassCache: true });
+          chrome.tabs.reload(tab.id, { bypassCache: false });
           showStatus("Tab reloaded, fetching details...");
 
           const onUpdated = (updatedTabId, info) => {
@@ -79,16 +79,49 @@ export async function tryGetDetails(tab, retries = 8, delay = 300) {
         }
 
         if (!hasInjected) {
-          console.log("injecting new script");
-          hasInjected = true;
-          await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            files: ['content.js']
-          }).catch(() => { });
-          const error = chrome.runtime.lastError;
+          try {
+            console.log("injecting new script");
+            hasInjected = true;
+            await chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              files: ['content.js']
+            });
+          } catch (e) {
+            const error = chrome.runtime.lastError || e;
+            const errorMessage = error.message ?? error.toString();
 
-          if (error) {
-            console.error("Script injection failed: ", error.message);
+            console.error("error injecting script", error);
+            if (errorMessage.includes("Missing host permission")) {
+              console.log("Missing permission error detected. Checking permissions...");
+              hasInjected = false;
+
+              try {
+                const hasPerms = await new Promise(r => chrome.permissions.contains({ origins: [tab.url] }, r));
+                console.log(`Permissions for ${tab.url}: ${hasPerms}`);
+
+                if (!hasPerms) {
+                  // Create a button for obtaining permission, the code has to run in ui, will restart the call afterwards
+                  const url = new URL(tab.url);
+                  const origin = `${url.protocol}//${url.host}/*`;
+                  showStatus(`Permissions lost after reload.<br/>
+<button 
+  id="permGrant" 
+  data-origin=${origin}
+  data-tab-id=${tab.id}
+>Grant Permissions</button>`);
+
+                  return;
+                }
+              } catch (err) {
+                console.error("Error checking permissions/tab:", err);
+              }
+
+              // If we think we have permissions (or check failed), retry with backoff
+              if (remaining > 0) {
+                setTimeout(() => attempt(remaining - 1), 1000);
+              }
+              return;
+            }
             showStatus("Cannot access this page.");
             return;
           }
