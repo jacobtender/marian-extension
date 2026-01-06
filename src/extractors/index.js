@@ -17,6 +17,7 @@ import { koboScraper } from "./kobo";
 import { libbyScraper, overdriveScraper, teachingbooksScraper } from "./overdrive";
 import { librofmScraper } from "./librofm";
 import { openlibraryScraper } from "./openlibrary";
+import { penguinRandomHouseScraper } from "./penguinrandomhouse";
 import { romanceIoScraper } from "./romanceio";
 import { storygraphScraper } from "./storygraph";
 
@@ -39,6 +40,7 @@ const extractors = [
   new librofmScraper(),
   new openlibraryScraper(),
   new overdriveScraper(),
+  new penguinRandomHouseScraper(),
   new romanceIoScraper(),
   new storygraphScraper(),
   new teachingbooksScraper(),

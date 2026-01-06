@@ -110,7 +110,8 @@
 		"https://www.romance.io/books/*",
 		"https://www.barnesandnoble.com/*",
 		"https://www.indiebookstores.ca/book/*",
-		"https://openlibrary.org/*"
+		"https://openlibrary.org/*",
+		"https://www.penguinrandomhouse.com/books/*"
 	],
 	"icons": {
 		"16": "icons/icon.png",

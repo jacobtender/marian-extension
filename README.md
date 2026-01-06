@@ -32,6 +32,7 @@ Book pages on these sites are currently supported by Marian. To request support 
 - Bookshop.org
 - Romance.io
 - IndieBookstores.ca
+- Penguin Random House
 
 ## Creating an extractor
 
