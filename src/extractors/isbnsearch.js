@@ -21,8 +21,6 @@ class isbnSearchScraper extends Extractor {
 
     bookDetails['Reading Format'] = normalizeReadingFormat(bookDetails["Edition Format"]);
 
-    // TODO: get language from ISBN
-
     // logMarian("bookDetails", bookDetails);
 
     return collectObject([
