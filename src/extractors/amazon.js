@@ -112,7 +112,13 @@ async function getCover() {
   // get original image
   covers.forEach((value) => value && covers.add(getHighResImageUrl(value)));
 
-  return getCoverData(Array.from(covers));
+  const coverList = Array.from(covers)
+    .filter((x) => !x.includes("01RmK+J4pJL.gif")); // filter out no image image
+  console.log(coverList)
+
+  const coverRes = await getCoverData(coverList);
+  if (coverRes.imgScore === 0) return {}
+  return coverRes;
 }
 
 function getHighResImageUrl(src) {
