@@ -1,3 +1,4 @@
+import SettingsManager from "./settings";
 import { normalizeUrl } from "../extractors";
 
 let __lastFetchedNorm = '';
@@ -8,6 +9,252 @@ export function setLastFetchedUrl(url) {
 
 export function getLastFetchedUrl() {
   return __lastFetchedNorm;
+}
+
+/**
+ * Order of sections to show in UI
+ */
+export const orderedKeys = [
+  'ISBN-10',
+  'ISBN-13',
+  'ASIN',
+  'Mappings',
+  'Contributors',
+  'Publisher',
+  'Reading Format',
+  'Listening Length',
+  'Listening Length Seconds',
+  'Pages',
+  'Edition Format',
+  'Edition Information',
+  'Publication date',
+  'Language',
+  'Country'
+];
+/**
+ * Keys for all the elements that are used by hardcover
+ */
+export const hardcoverKeys = [ // for filtering
+  "Title",
+  "Description",
+  "Series",
+  "Series Place",
+  "img",
+  "imgScore",
+  ...orderedKeys,
+]
+
+/**
+ * Takes in a details object and settings to apply to it
+ * Applies normalization to the object
+ *
+ * @param {Record<string,any>} details 
+ * @param {any} settings 
+ * @param {boolean} [inplace=true] edit the object in place or return a copy
+ *
+ * @returns {Record<string, any>}
+ */
+export function normalizeDetails(details, settings, inplace = true) {
+  if (!inplace) {
+    details = { ...details }; // shallow clone
+  }
+
+  // normalize
+
+  // Validate the ISBNs validity
+  if (details["ISBN-10"]) {
+    const isbn = details["ISBN-10"];
+    const checksum = getISBN10CheckDigit(isbn);
+    details["ISBN-10-valid"] = checksum == isbn[isbn.length - 1]
+  }
+  if (details["ISBN-13"]) {
+    const isbn = details["ISBN-13"];
+    const checksum = getISBN13CheckDigit(isbn);
+    details["ISBN-13-valid"] = checksum == isbn[isbn.length - 1]
+  }
+
+  // Regenerate missing ISBN using other one
+  if (!details["ISBN-13"] && !!details["ISBN-10"] && details["ISBN-10-valid"]) {
+    // make isbn13 from isbn10
+    let isbn = details["ISBN-10"].replaceAll("-", "");
+    if (isbn.length == 10) {
+      isbn = "978" + isbn; // add prefix
+      const checksum = getISBN13CheckDigit(isbn);
+      if (checksum != null) {
+        isbn = isbn.slice(0, isbn.length - 1); // remove original check digit
+        isbn = isbn + checksum; // add new check digit
+        details["ISBN-13"] = isbn;
+      }
+    }
+  }
+  if (!!details["ISBN-13"] && !details["ISBN-10"] && details["ISBN-13"].startsWith("978") && details["ISBN-13-valid"]) {
+    // make isbn10 from isbn13
+    let isbn = details["ISBN-13"].replaceAll("-", "");
+    if (isbn.length == 13) {
+      isbn = isbn.slice(3); // remove prefix
+      const checksum = getISBN10CheckDigit(isbn);
+      if (checksum != null) {
+        isbn = isbn.slice(0, isbn.length - 1); // remove original check digit
+        isbn = isbn + checksum; // add new check digit
+        details["ISBN-10"] = isbn;
+      }
+    }
+  }
+
+  // Set ASIN for physical books
+  if (details["Reading Format"] === "Physical Book" && !details["ASIN"] && !!details["ISBN-10"] && details["ISBN-10-valid"]) {
+    // for physical books the ASIN is the isbn-10
+    details["ASIN"] = details["ISBN-10"];
+  }
+
+  // Insert country (or language) from ISBN if not present
+  // See pr #70
+
+  // Add listening length in seconds
+  if (details["Listening Length"] && details["Listening Length"].length >= 1) {
+    if (!Array.isArray(details["Listening Length"])) {
+      details["Listening Length"] = [details["Listening Length"]];
+    }
+
+    let valid = true;
+    let lengthSeconds = 0;
+    details["Listening Length"].forEach((item) => {
+      if (!valid) return; // don't bother going over the rest
+      const timeLower = item.toLowerCase();
+      const timeAmount = parseInt(item); // ignores text after number
+
+      if (timeLower.includes("hours")) {
+        lengthSeconds += timeAmount * 60 * 60;
+      } else if (timeLower.includes("minutes")) {
+        lengthSeconds += timeAmount * 60;
+      } else if (timeLower.includes("seconds")) {
+        lengthSeconds += timeAmount;
+      } else {
+        valid = false; // encountered unknown unit
+        return;
+      }
+    });
+
+    if (valid) {
+      details["Listening Length Seconds"] = lengthSeconds;
+    }
+  }
+
+  // remove edition from end of Edition name (Kindle Edition -> Kindle, Audible Edition -> Audible)
+  if (details["Edition Format"] && details["Edition Format"].toLowerCase().endsWith("edition")) {
+    const edition = details["Edition Format"];
+    details["Edition Format"] = edition.slice(0, edition.length - "edition".length).trim();
+  }
+
+  // Remove independently published publisher
+  if (details["Publisher"] && details["Publisher"].toLowerCase() === "independently published") {
+    delete details["Publisher"];
+  }
+
+  // apply settings
+
+  // format date
+  if (details["Publication date"]) {
+    details["Publication date"] = formatDate(details["Publication date"], settings.dateFormat);
+  }
+
+  // Correct hyphenation on ISBNs according to settings
+  if (settings.hyphenateIsbn === "no") {
+    if (details["ISBN-10"]) details["ISBN-10"] = details["ISBN-10"].replaceAll("-", "");
+    if (details["ISBN-13"]) details["ISBN-13"] = details["ISBN-13"].replaceAll("-", "");
+  } else if (settings.hyphenateIsbn === "yes") {
+    throw "Not implemented";
+  }
+
+  // filter out non hardcover
+  if (settings.filterNonHardcover) {
+    Object.keys(details).forEach((key) => {
+      if (!hardcoverKeys.includes(key)) {
+        delete details[key];
+      }
+    });
+  }
+
+  // add or remove fields even if they are not set
+  if (!settings.keepFields) {
+    Object.keys(details).forEach((key) => {
+      // ignore non hardcover fields
+      if (!hardcoverKeys.includes(key)) return;
+
+      if (details[key] == undefined) {
+        delete details[key];
+      }
+    });
+  } else {
+    // fill in non present fields
+    hardcoverKeys.forEach((key) => {
+      if (details["Reading Format"] != "Audiobook") {
+        // book don't add audiobook fields
+        if (key === "Listening Length") return;
+        if (key === "Listening Length Seconds") return;
+      } else {
+        // audiobook, don't add book fields 
+        if (key === "Pages") return;
+      }
+
+      details[key] ??= null;
+    });
+  }
+
+  return details;
+}
+
+/**
+ * Formats a string as a date given a specified format 
+ *
+ * @param {Date|string|number} dateStr 
+ * @param {"local"|"ymd"|"dmy"|"mdy"} [format="local"] 
+ *
+ * @returns {string}
+ */
+export function formatDate(dateStr, format = "local") {
+  const date = new Date(dateStr);
+
+  if (isNaN(date)) {
+    return dateStr;
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  switch (format) {
+    case 'ymd':
+      return `${year}-${month}-${day}`;
+    case 'dmy':
+      return `${day}/${month}/${year}`;
+    case 'mdy':
+      return `${month}/${day}/${year}`;
+    case 'local': // fall through
+    default:
+      // navigator.language should always be set, but adding a fallback just in case
+      return new Intl.DateTimeFormat(navigator.language || "en-US").format(date);
+  }
+}
+
+/**
+ * Get the local format of dates on the system, for example
+ * m/d/yyyy
+ */
+export function getLocalDateFormat() {
+  const date = new Date(2025, 3, 8); // 2025-04-08
+  const formatted = new Intl.DateTimeFormat(navigator.language || "en-US").format(date);
+
+  // Replace the actual values with format placeholders
+  let pattern = formatted
+    .replace('2025', 'yyyy')
+    .replace('25', 'yy')
+    .replace('04', 'mm')
+    .replace('4', 'm')
+    .replace('08', 'dd')
+    .replace('8', 'd');
+
+  return pattern;
 }
 
 export function buildIssueUrl(tabUrl) {
@@ -32,6 +279,115 @@ export function buildIssueUrl(tabUrl) {
 }
 
 /**
+  * @typedef {Object} ToggleSetting
+  * @property {"toggle"} type
+  * @property {string} label
+  * @property {boolean} default
+  *
+  * @typedef {Object} SelectionSetting
+  * @property {"selection"} type
+  * @property {string} label
+  * @property {Record<string, string>} options Map of option values to display labels
+  * @property {string} default Must be one of the keys in options
+  *
+  * @typedef {ToggleSetting | SelectionSetting} SettingOption
+  */
+
+/** @param {SelectionSetting} setting */
+function validateSelectionSetting(setting) {
+  if (setting.type === 'selection' && !(setting.default in setting.options)) {
+    throw new Error(
+      `Default value "${setting.default}" is not a valid option. ` +
+      `Valid options are: ${Object.keys(setting.options).join(', ')}`
+    );
+  }
+}
+
+/**
+  * Takes in an object with the settings and returns a settings object 
+  *
+  * @param {HTMLElement} settingsContainer the HTML element to insert the options into 
+  * @param {Record<string, SettingOption>} settingOptions 
+  * @returns {SettingsManager}
+  */
+export function SetupSettings(settingsContainer, settingOptions) {
+  // validate options and create defaults options
+  const options = {};
+  Object.entries(settingOptions).forEach(([setting, settingInfo]) => {
+    switch (settingInfo.type) {
+      case "toggle":
+        break;
+      case "selection":
+        validateSelectionSetting(settingInfo);
+        break;
+      default:
+        throw `Unhandled setting type "${settingInfo.type}"`;
+    }
+    options[setting] = settingInfo.default;
+  });
+
+  const settingsObj = new SettingsManager(options);
+
+  // fill in settings container
+  settingsObj.get().then((settings) => {
+    Object.entries(settings).forEach(([setting, value]) => {
+      const info = settingOptions[setting];
+
+      const settingItem = document.createElement('div');
+      settingItem.className = 'setting-item';
+
+      const label = document.createElement('label');
+      settingItem.appendChild(label);
+
+      switch (info.type) {
+        case "toggle":
+          // Create checkbox with label
+          label.className = 'checkbox-label';
+
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.checked = value;
+          checkbox.addEventListener('change', (e) => {
+            settingsObj.set(setting, e.target.checked);
+          });
+
+          const textSpan = document.createElement('span');
+          textSpan.textContent = info.label;
+
+          label.appendChild(textSpan);
+          label.appendChild(checkbox);
+          break;
+
+        case "selection":
+          // Create select dropdown with label
+          label.className = 'setting-label';
+          label.textContent = info.label;
+
+          const select = document.createElement('select');
+          Object.entries(info.options).forEach(([optionValue, optionLabel]) => {
+            const option = document.createElement('option');
+            option.value = optionValue;
+            option.textContent = optionLabel;
+            option.selected = optionValue === value;
+            select.appendChild(option);
+          });
+
+          select.addEventListener('change', (e) => {
+            settingsObj.set(setting, e.target.value);
+          });
+
+          settingItem.appendChild(select);
+          break;
+      }
+
+      settingsContainer.appendChild(settingItem);
+    });
+  });
+
+  return settingsObj;
+}
+
+/**
  * Gets the current active tab
  * 
  * @returns {Promise<chrome.tabs.Tab | undefined>} A promise that resolves to the active tab object, or undefined if no active tab is found.
@@ -39,4 +395,44 @@ export function buildIssueUrl(tabUrl) {
 export async function getCurrentTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   return tab;
+}
+
+/**
+ * Calculates and returns the check digit for an isbn10
+ * Returns the check digit or undefined if the isbn is invalid
+ *
+ * @param {String} isbn - a 9 or 10 digit long isbn, if 10 long the present check digit is ignored 
+ * @returns {String|null}
+ */
+export function getISBN10CheckDigit(isbn) {
+  isbn = isbn.replaceAll("-", "");
+
+  // remove original check digit
+  if (isbn.length === 10) isbn = isbn.slice(0, isbn.length - 1);
+
+  if (isbn.length !== 9) return null;
+  if (/[^0-9]/.exec(isbn) != null) return null; // check for non digits
+
+  const checksum = [...isbn].reduce((acc, d, i) => acc + d * (i + 1), 0) % 11;
+  return checksum === 10 ? "X" : checksum.toString();
+}
+
+/**
+ * Calculates and returns the check digit for an isbn13
+ * Returns the check digit or undefined if the isbn is invalid
+ *
+ * @param {String} isbn - a 12 or 13 digit long isbn, if 13 long the present check digit is ignored 
+ * @returns {String|null}
+ */
+export function getISBN13CheckDigit(isbn) {
+  isbn = isbn.replaceAll("-", "");
+
+  // remove original check digit
+  if (isbn.length === 13) isbn = isbn.slice(0, isbn.length - 1);
+
+  if (isbn.length !== 12) return null;
+  if (/[^0-9]/.exec(isbn) != null) return null; // check for non digits
+
+  const checksum = (10 - ([...isbn].reduce((acc, d, i) => acc + d * (i % 2 ? 3 : 1), 0) % 10)) % 10;
+  return checksum.toString();
 }

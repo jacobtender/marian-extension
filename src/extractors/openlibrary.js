@@ -98,6 +98,14 @@ async function getDetails(idUrl) {
       v.forEach(i => addMapping(mappings, k, i));
     });
   }
+  if ("oclc_numbers" in data) {
+    const number = data["oclc_numbers"][0];
+    if (number) addMapping(mappings, "OCLC/WorldCat", number)
+  }
+  if ("lccn" in data) {
+    const number = data["lccn"][0];
+    if (number) addMapping(mappings, "LCCN", number);
+  }
 
   if ("publish_places" in data) {
     const location = data["publish_places"][0];
