@@ -1,5 +1,5 @@
 import { Extractor } from './AbstractExtractor.js';
-import { logMarian, delay, getCoverData, addContributor, cleanText, normalizeReadingFormat, collectObject } from '../shared/utils.js';
+import { delay, getCoverData, addContributor, cleanText, normalizeReadingFormat, collectObject, REGEX_ABBREV_TIME_HOURS_MINUTES } from '../shared/utils.js';
 
 class storygraphScraper extends Extractor {
     get _name() { return "StoryGraph Extractor"; }
@@ -119,7 +119,7 @@ function extractEditionInfo(bookDetails) {
     const durationEl = document.querySelector('p.text-sm.font-light');
     if (document.querySelector('p.text-sm.font-light')) {
         const value = durationEl.innerText.trim();
-        const timeMatch = value.match(/(\d+)\s*hours?\s*(?:,|and)?\s*(\d+)?\s*minutes?/i);
+        const timeMatch = value.match(REGEX_ABBREV_TIME_HOURS_MINUTES);
         const pagesMatch = value.match(/(\d+)\s*pages?/i);
 
         if (timeMatch) {

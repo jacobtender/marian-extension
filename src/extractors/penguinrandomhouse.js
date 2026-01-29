@@ -4,12 +4,12 @@ import {
   getCoverData,
   getFormattedText,
   normalizeReadingFormat,
+  REGEX_TIME_HOURS_MINUTES
 } from "../shared/utils.js";
 import { Extractor } from "./AbstractExtractor.js";
 
 const REGEX_SERIES_PLACE = /\d+(?=\s+of)/;
-const REGEX_TIME_HOURS_MINUTES =
-  /(\d+)\s*Hours?\s*(?:,|and)?\s*(\d+)?\s*Minutes?/i;
+
 
 class penguinRandomHouseScraper extends Extractor {
   get _name() {

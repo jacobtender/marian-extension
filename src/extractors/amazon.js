@@ -1,5 +1,5 @@
 import { Extractor } from "./AbstractExtractor.js"
-import { logMarian, getFormattedText, getCoverData, addContributor, cleanText, normalizeReadingFormat, collectObject } from '../shared/utils.js';
+import { logMarian, getFormattedText, getCoverData, addContributor, cleanText, normalizeReadingFormat, collectObject, REGEX_TIME_HOURS_MINUTES } from '../shared/utils.js';
 const bookSeriesRegex = /^Book (\d+) of \d+$/i;
 
 const includedLabels = new Set([
@@ -227,7 +227,7 @@ function getAudibleDetails() {
       details['Reading Format'] = value;
       details['Edition Format'] = "Audible";
     } else if (label === 'Listening Length') {
-      const timeMatch = value.match(/(\d+)\s*hours?\s*(?:and)?\s*(\d+)?\s*minutes?/i);
+      const timeMatch = value.match(REGEX_TIME_HOURS_MINUTES);
       if (timeMatch) {
         const arr = [];
         if (timeMatch[1]) arr.push(`${timeMatch[1]} hours`);

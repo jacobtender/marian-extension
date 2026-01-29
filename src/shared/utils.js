@@ -356,6 +356,9 @@ export function normalizeReadingFormat(rawFormat) {
   return "Physical Book"; // Fallback
 }
 
+export const REGEX_TIME_HOURS_MINUTES = /(\d+)\s*Hours?\s*(?:,|and)?\s*(\d+)?\s*Minutes?/i;
+export const REGEX_ABBREV_TIME_HOURS_MINUTES = /(\d+)\s*h\s*(\d+)\s*m/i;
+
 /**
  * collect a list of objects or promises of objects into a single new object
  * overrides keys based on order of objects in list
