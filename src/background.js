@@ -4,6 +4,17 @@ import { runtime, StorageBackedSet } from "./shared/utils"
 
 const activeSidebarWindows = new StorageBackedSet("active_sidebar_windows");
 
+chrome.runtime.onInstalled.addListener(async () => {
+  await activeSidebarWindows.clear();
+  if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
+    chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
+  }
+});
+
+chrome.runtime.onStartup.addListener(async () => {
+  await activeSidebarWindows.clear();
+});
+
 function updateIcon(tabId, isAllowed) {
   chrome.action.setIcon({
     tabId,

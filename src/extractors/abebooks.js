@@ -21,6 +21,7 @@ class abeBooksScraper extends Extractor {
     /https:\/\/www\.(abebooks\.(?:com|it|fr|de|co\.uk)|(?:iberlibro|zvab)\.com)\/+products\/+isbn\/+(\d{10}|\d{13})(?!\d)/,
     /https:\/\/www\.(abebooks\.(?:com|it|fr|de|co\.uk)|(?:iberlibro|zvab)\.com)\/+servlet\/+BookDetailsPL\?.*bi=(\d+)/,
     /https:\/\/www\.(abebooks\.(?:com|it|fr|de|co\.uk)|(?:iberlibro|zvab)\.com)\/+.*?\/+(\d{4,})\/+bd/,
+    /https:\/\/www\.(abebooks\.(?:com|it|fr|de|co\.uk)|(?:iberlibro|zvab)\.com)\/+(\d{10}|\d{13})(?!\d)/,
   ];
 
   async getDetails() {

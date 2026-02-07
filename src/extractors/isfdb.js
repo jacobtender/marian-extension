@@ -43,7 +43,31 @@ const remappings = remapKeys.bind(undefined, {
   "Current Tags": undefined,
   "Webpages": undefined,
   "User Rating": undefined,
+  "Price": undefined,
+  "Catalog ID": undefined,
+
+  // "Notes": undefined,
 });
+
+const novelTypes = {
+  "FANZINE": "Fanzine",
+  "ANTHOLOGY": "Anthology",
+  "CHAPBOOK": "Chapbook",
+  "COLLECTION": "Collection",
+  "MAGAZINE": "Magazine",
+  "NONFICTION": "Non-Fiction",
+  "NOVEL": "Novel",
+  "OMNIBUS": "Omnibus",
+
+  "SHORTFICTION": "Short Fiction",
+  "POEM": "Poem",
+  "ESSAY": "Essay",
+  "REVIEW": "Review",
+  "INTERVIEW": "Interview",
+  "SERIAL": "Serial",
+  "COVERART": "Cover Art",
+  "INTERIORART": "Interior Art",
+}
 
 function scrapeBook(doc = document) {
   const contentEl = doc.querySelector("#wrap div.ContentBox:has(.recordID)");
@@ -87,8 +111,8 @@ function scrapeBook(doc = document) {
         value = new Date(valSplit[0], Math.max(0, valSplit[1] - 1), valSplit[2]);
       }
     }
-    if (label === "Author") {
-      value = addContributor(details["Contributors"] ?? [], value, "Author");
+    if (label === "Author" || label === "Editor") {
+      value = addContributor(details["Contributors"] ?? [], value, label);
       label = "Contributors";
     }
     if (label === "Authors") {
@@ -148,16 +172,21 @@ async function scrapeEdition() {
         value = new Date(valSplit[0], Math.max(0, valSplit[1] - 1), valSplit[2]);
       }
     }
-    if (label === "Author") {
-      value = addContributor(details["Contributors"] ?? [], value, "Author");
-      label = "Contributors";
+    if (label === "Type") {
+      if (value in novelTypes) {
+        value = novelTypes[value];
+      }
+    }
+    if (label === "Author" || label === "Editor") {
+      value = addContributor(details["contributors"] ?? [], value, label);
+      label = "contributors";
     }
     if (label === "Authors") {
-      let contrbutors = details["Contributors"] ?? [];
+      let contrbutors = details["contributors"] ?? [];
       for (const author of container.querySelectorAll("a")) {
         value = addContributor(contrbutors, cleanText(author.textContent), "Author");
       }
-      label = "Contributors";
+      label = "contributors";
     }
     if (label === "ISBN") {
       const isbns = value.split(" ");
@@ -212,6 +241,8 @@ async function scrapeEdition() {
         value = "Trade Paperback";
       } else if (value.startsWith("pb")) {
         value = "Paperback";
+      } else if (value.startsWith("digest") && value.includes("magazine")) {
+        value = "Magazine";
       }
     }
 
@@ -233,7 +264,7 @@ async function scrapeEdition() {
     ?? titleLinks[0]
   )?.href;
   // if there is more then one book then don't fetch details for only one
-  if (details["Type"] === "OMNIBUS") titleLink = undefined;
+  if (details["Type"]?.toUpperCase() === "OMNIBUS") titleLink = undefined;
 
   const bookDetailsPromise = new Promise((resolve, reject) => {
     if (titleLink == undefined) {
@@ -263,9 +294,14 @@ async function scrapeEdition() {
     mappings,
   ]);
 
-  delete details["Type"];
-  delete details["Price"];
-  delete details["Notes"];
+  if ("contributors" in details) {
+    let contrbutors = details["Contributors"] ?? [];
+    for (const { name, roles } of details["contributors"]) {
+      addContributor(contrbutors, name, roles);
+    }
+    details["Contributors"] = contrbutors;
+    delete details["contributors"];
+  }
 
   return details;
 }

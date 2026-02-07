@@ -65,6 +65,22 @@ class amazonScraper extends Extractor {
       bookDetails["Edition Information"] = edition || version;
     }
 
+    // If the isbn10 is the isbn13 and is in the ASIN
+    const isbn10 = bookDetails["ISBN-10"]?.replace("-", "");
+    const isbn13 = bookDetails["ISBN-13"]?.replace("-", "");
+    const asin = bookDetails["ASIN"];
+    if (
+      isbn10 != null &&
+      isbn13 != null &&
+      asin != null &&
+      asin.length === 10 &&
+      isbn10.length === 13 &&
+      isbn10 === isbn13 &&
+      !/[a-z]/i.test(asin)
+    ) {
+      bookDetails["ISBN-10"] = asin;
+    }
+
     const mergedDetails = await collectObject([
       bookDetails,
       audibleDetails,

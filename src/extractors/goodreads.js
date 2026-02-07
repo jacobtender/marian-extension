@@ -30,8 +30,8 @@ class goodreadsScraper extends Extractor {
 
     bookDetails['Reading Format'] = normalizeReadingFormat(bookDetails["Edition Format"]);
 
-    if (bookDetails["Edition Format"].toLowerCase() === "kindle edition") bookDetails["Edition Format"] = "Kindle";
-    if (bookDetails["Edition Format"].toLowerCase() === "audible audio") bookDetails["Edition Format"] = "Audible";
+    if (bookDetails["Edition Format"]?.toLowerCase() === "kindle edition") bookDetails["Edition Format"] = "Kindle";
+    if (bookDetails["Edition Format"]?.toLowerCase() === "audible audio") bookDetails["Edition Format"] = "Audible";
 
     // logMarian("bookDetails", bookDetails);
 
@@ -76,13 +76,13 @@ function getBookDetails(apolloData, bookDetails) {
   const details = bookData?.details;
   if (details) {
     if ("asin" in details) bookDetails["ASIN"] = details.asin;
-    if ("language" in details) bookDetails["Language"] = details.language?.name ?? details.language;
-    if ("isbn" in details) bookDetails["ISBN-10"] = details.isbn;
-    if ("isbn13" in details) bookDetails["ISBN-13"] = details.isbn13;
-    if ("publicationTime" in details) bookDetails['Publication date'] = new Date(details.publicationTime);
+    if ("language" in details && details.language) bookDetails["Language"] = details.language.name;
+    if ("isbn" in details && details.isbn) bookDetails["ISBN-10"] = details.isbn;
+    if ("isbn13" in details && details.isbn13) bookDetails["ISBN-13"] = details.isbn13;
+    if ("publicationTime" in details && details.publicationTime) bookDetails['Publication date'] = new Date(details.publicationTime);
     if ("publisher" in details) bookDetails['Publisher'] = details.publisher;
     if ("format" in details) bookDetails["Edition Format"] = details.format;
-    if ("numPages" in details) bookDetails["Pages"] = details.numPages;
+    if ("numPages" in details && details.numPages > 0) bookDetails["Pages"] = details.numPages;
   }
 
   // series

@@ -1,6 +1,19 @@
 import { tryGetDetails } from "./messaging.js";
 import { isAllowedUrl, normalizeUrl } from "../extractors";
-import { setLastFetchedUrl, getLastFetchedUrl, getCurrentTab, notifyBackground } from "./utils.js";
+import { setLastFetchedUrl, getLastFetchedUrl, getCurrentTab, SetupSettings, getLocalDateFormat, orderedKeys, normalizeDetails, notifyBackground } from "./utils.js";
+import { } from "./utils.js";
+
+const settingsManager = SetupSettings(document.querySelector("#settings"), {
+  hyphenateIsbn: {
+    type: "selection", label: "Hyphenate ISBNs", options: {
+      // yes: "Yes",
+      no: "No (Hardcover)", none: "Leave Alone"
+    }, default: "none"
+  },
+  dateFormat: { type: "selection", label: "Format date", default: "local", options: { local: `Local format (${getLocalDateFormat()})`, ymd: "yyyy-mm-dd", dmy: "dd/mm/yyyy", mdy: "mm/dd/yyyy" } },
+  filterNonHardcover: { type: "toggle", label: "Filter out non-Hardcover fields", default: false },
+  keepFields: { type: "toggle", label: "Always display non-present Hardcover fields", default: false },
+});
 
 // DOM refs (looked up when functions are called)
 function statusBox() { return document.getElementById('status'); }
@@ -16,18 +29,6 @@ function copyToClipboard(text, labelEl) {
     labelEl.appendChild(feedback);
     setTimeout(() => feedback.remove(), 2000);
   });
-}
-
-function formatDate(dateStr) {
-  const date = new Date(dateStr);
-  if (!isNaN(date)) {
-    // navigator.language should always be set, but adding a fallback just in case
-    // format in UTC timezone to prevent local timezone offset from shifting the date
-    return new Intl.DateTimeFormat(navigator.language || "en-US", {
-      timeZone: 'UTC'
-    }).format(date);
-  }
-  return dateStr;
 }
 
 function downloadImage(url, bookId) {
@@ -105,6 +106,8 @@ function renderRow(container, key, value) {
       }
     });
 
+    flatList.sort((a, b) => a.source.localeCompare(b.source) || a.id.localeCompare(b.id));
+
     flatList.forEach((item, i) => {
       addSpan(item.id, 'value mapping-id');
       addText(" (");
@@ -138,8 +141,42 @@ function renderRow(container, key, value) {
   container.appendChild(div);
 }
 
-export function renderDetails(details) {
+export async function renderDetails(details) {
+  // get settings
+  const settings = await settingsManager.get();
+
+  renderDetailsWithSettings(details, settings);
+
+  const container = detailsBox();
+  if (!container) return;
+
+  // Create a unique marker element to track if this render is still active
+  const markerId = `details-marker-${Date.now()}-${Math.random()}`;
+  const marker = document.createElement('span');
+  marker.id = markerId;
+  marker.style.display = 'none';
+  container.appendChild(marker);
+
+  const unsub = settingsManager.subscribe((changes) => {
+    // Check if marker still exists (component still mounted)
+    if (!document.getElementById(markerId)) {
+      unsub();
+      return;
+    }
+
+    // update settings
+    Object.entries(changes).forEach(([setting, { newValue }]) => settings[setting] = newValue);
+
+    renderDetailsWithSettings(details, settings);
+    container.appendChild(marker);
+  });
+}
+
+function renderDetailsWithSettings(details, settings = {}) {
+  details = normalizeDetails(details, settings, false);
   console.log('[Extension] Rendering details:', details);
+  console.log('[Extension] Rendering settings:', settings);
+
   const container = detailsBox();
   if (!container) return;
   container.innerHTML = ""; // safety clear 
@@ -254,60 +291,8 @@ export function renderDetails(details) {
     container.appendChild(metaTop);
   }
 
-  // Normalization
-
-  if (details["Publication date"]) {
-    details["Publication date"] = formatDate(details["Publication date"]);
-  }
-
-  if (details["Listening Length"] && details["Listening Length"].length >= 1) {
-    if (!Array.isArray(details["Listening Length"])) {
-      details["Listening Length"] = [details["Listening Length"]];
-    }
-
-    let valid = true;
-    let lengthSeconds = 0;
-    details["Listening Length"].forEach((item) => {
-      if (!valid) return; // don't bother going over the rest
-      const timeLower = item.toLowerCase();
-      const timeAmount = parseInt(item); // ignores text after number
-
-      if (timeLower.includes("hours")) {
-        lengthSeconds += timeAmount * 60 * 60;
-      } else if (timeLower.includes("minutes")) {
-        lengthSeconds += timeAmount * 60;
-      } else if (timeLower.includes("seconds")) {
-        lengthSeconds += timeAmount;
-      } else {
-        valid = false; // encountered unknown unit
-        return;
-      }
-    });
-
-    if (valid) {
-      details["Listening Length Seconds"] = lengthSeconds;
-    }
-  }
-
   const hr = document.createElement('hr');
   container.appendChild(hr);
-
-  const orderedKeys = [
-    'ISBN-10',
-    'ISBN-13',
-    'ASIN',
-    'Mappings',
-    'Contributors',
-    'Publisher',
-    'Reading Format',
-    'Listening Length',
-    'Listening Length Seconds',
-    'Pages',
-    'Edition Format',
-    'Edition Information',
-    'Publication date',
-    'Language'
-  ];
 
   const rendered = new Set(['Series', 'Series Place']);
   orderedKeys.forEach(key => {
@@ -315,9 +300,32 @@ export function renderDetails(details) {
       renderRow(container, key, details[key]);
       rendered.add(key);
     }
+
+    // show warnings
+    if (["ISBN-10", "ISBN-13"].includes(key)) {
+      const valid = details[`${key}-valid`];
+      if (!valid && valid != undefined) {
+        const div = document.createElement('div');
+        div.className = 'row warning';
+        div.appendChild(document.createTextNode(
+          "WARNING: The ISBN above is invalid!"
+        ));
+        container.appendChild(div);
+      }
+    }
+    if ("ISBN-13" === key) {
+      if ("ISBN-mismatch" in details && details["ISBN-mismatch"]) {
+        const div = document.createElement('div');
+        div.className = 'row warning';
+        div.appendChild(document.createTextNode(
+          "WARNING: The ISBN-10 and ISBN-13 do not belong to the same book"
+        ));
+        container.appendChild(div);
+      }
+    }
   });
 
-  const filteredKeys = ['img', 'imgScore', 'Title', 'Description'];
+  const filteredKeys = ['img', 'imgScore', 'Title', 'Description', "ISBN-10-valid", "ISBN-13-valid", "ISBN-mismatch"];
   Object.entries(details).forEach(([key, value]) => {
     if (filteredKeys.includes(key) || rendered.has(key)) return;
     renderRow(container, key, value);
@@ -398,7 +406,7 @@ async function getDetailsForTab(tab) {
   try {
     const details = await tryGetDetails(tab)
     showDetails();
-    renderDetails(details);
+    await renderDetails(details);
 
     // 👇 After refreshing, set last fetched & disable if same tab
     setLastFetchedUrl(tab?.url || "");
@@ -470,7 +478,6 @@ document.addEventListener("click", function(event) {
       // Retry immediately
       showStatus("Permissions granted. Reloading...");
       chrome.tabs.get(tabId, async (tab) => {
-        debugger;
         await getDetailsForTab(tab);
       });
     });

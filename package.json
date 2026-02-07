@@ -1,6 +1,6 @@
 {
   "name": "marian-extension",
-  "version": "2.0.4",
+  "version": "2.1.0",
   "description": "Extracts book details from Amazon product pages. Created for the fine librarian corps of Hardcover.app.",
   "main": "background.js",
   "type": "module",

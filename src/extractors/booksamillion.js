@@ -38,6 +38,10 @@ class booksAMillionScraper extends Extractor {
       details[title] = value
     }
 
+    if (details["ISBN-10"].length === 13 && details["ISBN-10"] === details["ISBN-13"])
+      delete details["ISBN-10"];
+
+
     details = nameRemap(details);
 
     const available = cleanText(document.querySelector(`.productAvailableText`)?.textContent ?? "");

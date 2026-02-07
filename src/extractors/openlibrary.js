@@ -45,8 +45,8 @@ async function getDetails(idUrl) {
   const data = await fetchJson(idUrl);
   const isEdition = getFirstKey(data["type"])?.includes("edition");
 
-  let detailsList = [];
-  let mappings = {};
+  const detailsList = [];
+  const mappings = {};
 
   if (isEdition) {
     addMapping(mappings, "Open Liberary Edition", data["key"]);
@@ -66,7 +66,7 @@ async function getDetails(idUrl) {
     }
   }
 
-  let details = {};
+  const details = {};
   detailsList.push(details);
 
   if ("physical_format" in data) {
@@ -97,6 +97,14 @@ async function getDetails(idUrl) {
       }
       v.forEach(i => addMapping(mappings, k, i));
     });
+  }
+  if ("oclc_numbers" in data) {
+    const number = data["oclc_numbers"][0];
+    if (number) addMapping(mappings, "OCLC/WorldCat", number)
+  }
+  if ("lccn" in data) {
+    const number = data["lccn"][0];
+    if (number) addMapping(mappings, "LCCN", number);
   }
 
   if ("publish_places" in data) {
@@ -130,32 +138,32 @@ async function getDetails(idUrl) {
   }
 
   if ("languages" in data) {
-    detailsList.push(new Promise(async (r) => {
+    detailsList.push((async () => {
       const languageId = getFirstKey(data["languages"]);
       const langData = await fetchJson(languageId);
       const name = langData["name"];
       if (name) {
-        return r({ "Language": name });
+        return { "Language": name };
       }
-      r({});
-    }));
+      return {};
+    })());
   }
 
   if ("translated_from" in data) {
-    detailsList.push(new Promise(async (r) => {
+    detailsList.push((async () => {
       const languageId = getFirstKey(data["translated_from"]);
       const langData = await fetchJson(languageId);
       const name = langData["name"];
       if (name) {
-        return r({ "Original Language": name });
+        return { "Original Language": name };
       }
-      r({});
-    }));
+      return {};
+    })());
   }
 
   if ("authors" in data) {
-    detailsList.push(new Promise(async (r) => {
-      let contributors = [];
+    detailsList.push((async () => {
+      const contributors = [];
 
       for (const author of data["authors"]) {
         let role = "Author"
@@ -178,13 +186,13 @@ async function getDetails(idUrl) {
           addContributor(contributors, name, role);
         }
       }
-      r(contributors.length > 0 ? { "contributors": contributors } : {});
-    }));
+      return contributors.length > 0 ? { "contributors": contributors } : {};
+    })());
   }
 
-  let result = await collectObject(detailsList);
+  const result = await collectObject(detailsList);
 
-  let contributors = result["contributors"] ?? [];
+  const contributors = result["contributors"] ?? [];
   if (result["Contributors"]) result["Contributors"].forEach(({ name, roles }) => {
     addContributor(contributors, name, roles);
   });
@@ -213,7 +221,11 @@ function getFirstKey(obj) {
 }
 
 function parseDateLocal(dateStr) {
-  if (!dateStr.match(/^\d+(?:-\d+)?(?:-\d+)?/)) {
+  if (dateStr.match(/^[a-z]+ \d+$/i)) {
+    dateStr = `1 ${dateStr}`;
+  }
+
+  if (!dateStr.match(/^\d+(?:-\d+)?(?:-\d+)?$/)) {
     return new Date(dateStr);
   }
 
