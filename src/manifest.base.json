@@ -117,6 +117,8 @@
 		"https://booksamillion.com/p/*",
 		"https://www.booksamillion.com/p/*",
 
+		"https://raw.githubusercontent.com/jacobtender/marian-extension/refs/heads/*",
+
 		"https://torpublishinggroup.com/*",
 		"https://inventaire.io/entity/*",
 		"https://search.worldcat.org/*",

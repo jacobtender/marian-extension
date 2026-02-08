@@ -1,5 +1,5 @@
 import SettingsManager from "./settings";
-import { searchIsbn } from "../shared/getGroup.js";
+import { hyphenate, searchIsbn } from "../shared/getGroup.js";
 import { normalizeUrl } from "../extractors";
 
 let __lastFetchedNorm = '';
@@ -207,8 +207,12 @@ export function normalizeDetails(details, settings, inplace = true) {
     if (details["ISBN-10"]) details["ISBN-10"] = details["ISBN-10"].replaceAll("-", "");
     if (details["ISBN-13"]) details["ISBN-13"] = details["ISBN-13"].replaceAll("-", "");
   } else if (settings.hyphenateIsbn === "yes") {
-    // see #104
-    throw "Not implemented";
+    try {
+      details["ISBN-10"] = hyphenate(details["ISBN-10"]);
+    } catch { }
+    try {
+      details["ISBN-13"] = hyphenate(details["ISBN-13"]);
+    } catch { }
   }
 
   // filter out non hardcover
