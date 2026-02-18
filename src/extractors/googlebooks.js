@@ -321,7 +321,7 @@ function getGoogleBookPageCount() {
 function getGoogleBookDescription() {
     try {
         // NOTE: this seems very fragile, if the class name changes then this breaks 
-        const descriptionContainer = queryDeep("g-expandable-content[data-eb='0'] div.Y0Qrof", KNOWN_HOSTS);
+        const descriptionContainer = queryDeep(`.T4Ew8c [jsname="AKKCW"] [data-eb="0"]`, KNOWN_HOSTS);
         if (!descriptionContainer) {
             return "";
         }
