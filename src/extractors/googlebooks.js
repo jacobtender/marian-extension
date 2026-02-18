@@ -377,7 +377,7 @@ function getGoogleBookReadingFormat() {
 function getContributors() {
     const contribContainer = queryAllDeep(`div[role="presentation"] .PZPZlf`, KNOWN_HOSTS);
 
-    const roles = ["Author", "Illustrator", "Translator"]
+    const roles = ["Author", "Illustrator", "Translator", "Editor", "Contributor"]
     const roleLowers = roles.map(i => i.toLowerCase());
 
     const contribParts = contribContainer.map(div => {
