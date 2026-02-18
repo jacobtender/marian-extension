@@ -6,6 +6,7 @@ const KNOWN_HOSTS = ['g-expandable-content'];
 
 class googleBooksScraper extends Extractor {
     get _name() { return "Google Books Extractor"; }
+    needsReload = false;
     _sitePatterns = [
         /^https?:\/\/(www\.)?google\.[a-z.]+\/books/,
         /^https?:\/\/books.google\.[a-z.]+\/books(?:\/[^?]*)?/,
@@ -73,15 +74,7 @@ function getGoogleBooksDetails() {
         bookDetails['Edition Format'] = editionFormat;
     }
 
-    // Extract authors and convert to contributors format
-    let contributors = [];
-
-    const authors = getGoogleBookAuthors();
-    authors.forEach(contributor => addContributor(contributors, contributor, "Author"));
-    const illustrators = getGoogleBookIllustrators();
-    illustrators.forEach(contributor => addContributor(contributors, contributor, "Illustrator"));
-
-    bookDetails['Contributors'] = contributors;
+    bookDetails['Contributors'] = getContributors();
 
     logMarian("Google Books extraction complete:", bookDetails);
 
@@ -381,47 +374,35 @@ function getGoogleBookReadingFormat() {
     }
 }
 
-/**
- * Extracts author names from the Google Books info panel.
- * @returns {string[]} Array of author names.
- */
-function getGoogleBookAuthors() {
-    try {
-        const authorContainer = Array.from(queryAllDeep("div.zloOqf.PZPZlf", KNOWN_HOSTS))
-            .find((div) => div.textContent.trim().toLowerCase().startsWith("author"));
+function getContributors() {
+    const contribContainer = queryAllDeep(`div[role="presentation"] .PZPZlf`, KNOWN_HOSTS);
 
-        if (!authorContainer) {
-            return [];
+    const roles = ["Author", "Illustrator", "Translator"]
+    const roleLowers = roles.map(i => i.toLowerCase());
+
+    const contribParts = contribContainer.map(div => {
+        const contentLower = cleanText(div.textContent).toLowerCase();
+        const idx = roleLowers.map(i => contentLower.startsWith(i)).indexOf(true);
+        if (idx === -1) return null;
+        return /** @type {[string, Element]} */ ([roles[idx], div]);
+    }).filter(i => i != null);
+
+    // Extract authors and convert to contributors format
+    const contributors = [];
+
+    for (const contribRow of contribParts) {
+        const [role, div] = contribRow;
+        /** @type {string[]} */
+        let row;
+        if (role === "Author") {
+            row = [...div.querySelectorAll("a.fl")].map((i) => cleanText(i.textContent));
+        } else {
+            row = div.children[1].textContent.split(",")
         }
-
-        const anchorElements = authorContainer.querySelectorAll("a.fl");
-        return Array.from(anchorElements).map((a) => a.textContent.trim());
-    } catch (err) {
-        console.error("Error while extracting book authors", err);
-        return [];
+        row.map(i => addContributor(contributors, i, role));
     }
-}
 
-/**
- * Extracts illustrator names from the Google Books info panel.
- * @returns {string[]} Array of illustrator names.
- */
-function getGoogleBookIllustrators() {
-    try {
-        const illustratorContainer = Array.from(queryAllDeep("div.zloOqf.PZPZlf", KNOWN_HOSTS))
-            .find((div) => div.textContent.trim().toLowerCase().startsWith("illustrator"));
-
-        if (!illustratorContainer) {
-            return [];
-        }
-
-        console.log(illustratorContainer);
-        const illustrators = illustratorContainer.children[1].textContent.split(",");
-        return Array.from(illustrators).map((a) => cleanText(a));
-    } catch (err) {
-        console.error("Error while extracting book illustrators", err);
-        return [];
-    }
+    return contributors;
 }
 
 /**
