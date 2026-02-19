@@ -308,7 +308,7 @@ export function addMapping(mappings, name, ids) {
  * @returns {string} Sanitized text with normalized spacing.
  */
 export function cleanText(text) {
-  if (!text) return '';
+  if (!text || text == null) return '';
   return text
     .normalize('NFKC')                                        // Normalize Unicode to one style
     .replace(/\p{Cf}/gu, '')                                  // Remove Unicode control chars
@@ -336,6 +336,8 @@ export function normalizeReadingFormat(rawFormat) {
   ) return "Audiobook";
 
   if (
+    format.includes("web") ||
+    format.includes("nook") ||
     format.includes("ebook") ||
     format.includes("e-book") ||
     format.includes("digital") ||
@@ -388,11 +390,12 @@ export async function collectObject(items) {
   * preforms a http request and returns a dom
   *
   * @param {string} url 
+  * @param {RequestInit?} args
   * @returns {Promise<DOMParser|undefined>}
   */
-export async function fetchHTML(url) {
+export async function fetchHTML(url, args = undefined) {
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, args);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
