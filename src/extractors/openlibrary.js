@@ -171,7 +171,7 @@ async function getDetails(idUrl) {
         if (authorKey == undefined) {
           if (!("type" in author)) continue;
           const typeKey = author.type.key;
-          if (typeKey !== "/type/author_role") {
+          if (typeKey && typeKey !== "/type/author_role") {
             // TODO: get role name from endpoint
             role = typeKey.split("/").splice(-1)[0] || typeKey;
           }
