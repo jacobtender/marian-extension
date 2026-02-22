@@ -141,7 +141,8 @@
 		"https://www.barnesandnoble.com/*",
 		"https://www.indiebookstores.ca/book/*",
 		"https://openlibrary.org/*",
-		"https://www.penguinrandomhouse.com/books/*"
+		"https://www.penguinrandomhouse.com/books/*",
+		"https://www.smashwords.com/books/*"
 	],
 	"icons": {
 		"16": "icons/icon.png",
