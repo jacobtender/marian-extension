@@ -34,7 +34,7 @@ class amazonScraper extends Extractor {
     const contributors = extractAmazonContributors();
 
     bookDetails["Edition Format"] = getSelectedFormat() || '';
-    bookDetails["Title"] = document.querySelector('#productTitle')?.innerText.trim();
+    bookDetails["Title"] = cleanText(document.querySelector('#productTitle')?.innerText);
     bookDetails["Description"] = getBookDescription() || '';
     bookDetails["Contributors"] = contributors;
 
@@ -49,10 +49,10 @@ class amazonScraper extends Extractor {
     // combined publisher date
     const pubDate = bookDetails["Publisher"]?.match(/^(?<pub>[^(;]+?)(?:; (?<edition>[\w ]+))? \((?<date>\d{1,2} \w+ \d{4})\)$/);
     if (pubDate != undefined) {
-      bookDetails["Publisher"] = pubDate.groups["pub"].trim();
+      bookDetails["Publisher"] = cleanText(pubDate.groups["pub"]);
       bookDetails["Publication date"] = pubDate.groups["date"];
       if (pubDate.groups["edition"]) {
-        bookDetails["Edition Information"] = pubDate.groups["edition"].trim();
+        bookDetails["Edition Information"] = cleanText(pubDate.groups["edition"]);
       }
     }
 
@@ -254,7 +254,7 @@ function getDetailBullets() {
   // Double check book series
   const series = document.querySelector("div[data-feature-name='seriesBulletWidget'] a")
   if (!details["Series"] && series != undefined) {
-    const match = series.textContent.trim().match(/Book (\d+) of \d+: (.+)/i);
+    const match = cleanText(series.textContent).match(/Book (\d+) of \d+: (.+)/i);
     if (match) {
       details['Series'] = match[2];
       details['Series Place'] = match[1];
@@ -272,8 +272,8 @@ function getAudibleDetails() {
   const rows = table.querySelectorAll('tr');
 
   rows.forEach(row => {
-    const label = row.querySelector('th span')?.textContent?.trim();
-    const value = row.querySelector('td')?.innerText?.trim();
+    const label = cleanText(row.querySelector('th span')?.textContent);
+    const value = cleanText(row.querySelector('td')?.innerText);
     const match = bookSeriesRegex.exec(label) || bookSeriesRegex.exec(value);
 
     // Handle book series special case
@@ -327,7 +327,7 @@ function getBookDescription() {
 function getSelectedFormat() {
   const selected = document.querySelector('#tmmSwatches .swatchElement.selected .slot-title span[aria-label]');
   if (selected) {
-    return selected.getAttribute('aria-label')?.replace(' Format:', '').trim();
+    return cleanText(selected.getAttribute('aria-label')?.replace(' Format:', ''));
   }
   return null;
 }
@@ -337,8 +337,8 @@ function extractAmazonContributors() {
 
   const authorSpans = document.querySelectorAll('#bylineInfo .author');
   authorSpans.forEach(span => {
-    const name = span.querySelector('a')?.innerText.trim();
-    const roleText = span.querySelector('.contribution span')?.innerText.trim();
+    const name = cleanText(span.querySelector('a')?.innerText);
+    const roleText = cleanText(span.querySelector('.contribution span')?.innerText);
     let roles = [];
 
     if (roleText) {
@@ -346,7 +346,7 @@ function extractAmazonContributors() {
       const roleMatch = roleText.match(/\(([^)]+)\)/);
       if (roleMatch) {
         // Split by comma and trim each role
-        roles = roleMatch[1].split(',').map(r => r.trim());
+        roles = roleMatch[1].split(',').map(cleanText);
       }
     } else {
       roles.push("Contributor"); // fallback if role is missing
