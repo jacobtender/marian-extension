@@ -1,6 +1,7 @@
 // googlebooks.js
+
+import { addContributor, cleanText, clearDeepQueryCache, collectObject, getCoverData, getFormattedText, logMarian, normalizeReadingFormat, queryAllDeep, queryDeep } from '../shared/utils.js';
 import { Extractor } from './AbstractExtractor.js';
-import { logMarian, getCoverData, cleanText, normalizeReadingFormat, collectObject, queryDeep, queryAllDeep, getFormattedText, addContributor, clearDeepQueryCache } from '../shared/utils.js';
 
 const KNOWN_HOSTS = ['g-expandable-content'];
 
@@ -22,9 +23,17 @@ class googleBooksScraper extends Extractor {
         // Extract cover image using volume ID
         const coverData = getCoverData(getGoogleBooksCoverUrl(sourceId));
 
-        const bookDetails = googlebooksClassic ?
-            getClassicGoogleBooksDetails() :
-            getGoogleBooksDetails();
+        let bookDetails = {};
+        if (sourceId) {
+            bookDetails = await fetchGoogleBooksApiDetails(sourceId);
+        }
+
+        if (Object.keys(bookDetails).length === 0) {
+            logMarian("Google Books API fallback: extracting from DOM.");
+            bookDetails = googlebooksClassic ?
+                getClassicGoogleBooksDetails() :
+                getGoogleBooksDetails();
+        }
 
         return collectObject([
             coverData,
@@ -32,6 +41,115 @@ class googleBooksScraper extends Extractor {
             mappings,
         ]);
     }
+}
+
+async function fetchGoogleBooksApiDetails(volumeId) {
+    try {
+        const response = await fetch(`https://www.googleapis.com/books/v1/volumes/${volumeId}`);
+        if (!response.ok) {
+            logMarian(`API responded with status ${response.status}`);
+            return {};
+        }
+        const data = await response.json();
+        return parseGoogleBooksApiData(data);
+    } catch (error) {
+        logMarian("Error fetching from Google Books API:", error);
+        return {};
+    }
+}
+
+function parseGoogleBooksApiData(data) {
+    const bookDetails = {};
+    const volumeInfo = data.volumeInfo || {};
+    const saleInfo = data.saleInfo || {};
+
+    // Title & Subtitle
+    let title = volumeInfo.title || "";
+    if (title && volumeInfo.subtitle) {
+        title = `${title}: ${volumeInfo.subtitle}`;
+    }
+    if (title) bookDetails["Title"] = cleanText(title);
+
+    // Description
+    if (volumeInfo.description) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = volumeInfo.description;
+        bookDetails["Description"] = getFormattedText(tempDiv);
+    }
+
+    // Identifiers (ISBNs)
+    if (volumeInfo.industryIdentifiers) {
+        for (const idObj of volumeInfo.industryIdentifiers) {
+            if (idObj.type === "ISBN_10") {
+                bookDetails["ISBN-10"] = idObj.identifier;
+            } else if (idObj.type === "ISBN_13") {
+                bookDetails["ISBN-13"] = idObj.identifier;
+            }
+        }
+    }
+
+    // Publication Date
+    if (volumeInfo.publishedDate) {
+        bookDetails["Publication date"] = volumeInfo.publishedDate;
+    }
+
+    // Publisher
+    if (volumeInfo.publisher) {
+        bookDetails["Publisher"] = cleanText(volumeInfo.publisher);
+    }
+
+    // Language
+    if (volumeInfo.language) {
+        bookDetails["Language"] = volumeInfo.language;
+    }
+
+    // Pages
+    if (volumeInfo.pageCount) {
+        bookDetails["Pages"] = volumeInfo.pageCount;
+    }
+
+    // Format
+    if (saleInfo.isEbook) {
+        bookDetails["Reading Format"] = "Ebook";
+        bookDetails["Edition Format"] = "Digital";
+    } else if (volumeInfo.printType === "BOOK") {
+        bookDetails["Reading Format"] = "Physical Book";
+        bookDetails["Edition Format"] = "Print";
+    } else if (volumeInfo.printType === "MAGAZINE") {
+        bookDetails["Reading Format"] = "Physical Book";
+        bookDetails["Edition Format"] = "Magazine";
+    }
+
+    // Contributors
+    const contributors = [];
+    if (volumeInfo.authors) {
+        for (const author of volumeInfo.authors) {
+            addContributor(contributors, cleanText(author), "Author");
+        }
+    }
+    if (contributors.length > 0) {
+        bookDetails["Contributors"] = contributors;
+    }
+
+    // Extra API Fields
+    if (volumeInfo.categories && volumeInfo.categories.length > 0) {
+        bookDetails["Categories"] = volumeInfo.categories;
+    }
+    if (volumeInfo.mainCategory) {
+        bookDetails["Main Category"] = volumeInfo.mainCategory;
+    }
+    if (volumeInfo.averageRating) {
+        bookDetails["Average Rating"] = volumeInfo.averageRating;
+    }
+    if (volumeInfo.ratingsCount) {
+        bookDetails["Ratings Count"] = volumeInfo.ratingsCount;
+    }
+    if (volumeInfo.maturityRating && volumeInfo.maturityRating !== "NOT_MATURE") {
+        bookDetails["Maturity Rating"] = volumeInfo.maturityRating;
+    }
+
+    logMarian("Google Books API extraction complete:", bookDetails);
+    return bookDetails;
 }
 
 function getGoogleBooksDetails() {
@@ -140,7 +258,7 @@ function getClassicGoogleBooksDetails() {
         bookDetails["Publication date"] = new Date(pubYearElement.children[1].textContent);
     }
 
-    let contributors = [];
+    const contributors = [];
     if ("Author" in bookInfo) {
         addContributor(contributors, cleanText(bookInfo["Author"].textContent), "Author");
         delete bookInfo["Author"];
