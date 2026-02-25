@@ -68,7 +68,7 @@ class amazonScraper extends Extractor {
     // If the isbn10 is the isbn13 and is in the ASIN
     const isbn10 = bookDetails["ISBN-10"]?.replace("-", "");
     const isbn13 = bookDetails["ISBN-13"]?.replace("-", "");
-    const asin = bookDetails["ASIN"];
+    const asin = bookDetails["ASIN"] ?? audibleDetails["ASIN"];
     if (
       isbn10 != null &&
       isbn13 != null &&
@@ -81,19 +81,76 @@ class amazonScraper extends Extractor {
       bookDetails["ISBN-10"] = asin;
     }
 
+    const audnexusPromise = fetchAudnexusDetails(asin, audibleDetails);
+
     const mergedDetails = await collectObject([
       bookDetails,
+      audnexusPromise,
       audibleDetails,
       coverData,
     ]);
 
     delete mergedDetails.Edition;
     delete mergedDetails.Version;
+    delete mergedDetails._detectedRegion;
 
     // logMarian("details", mergedDetails);
 
     return mergedDetails;
   }
+}
+
+async function fetchAudnexusDetails(asin, audibleDetails) {
+  if (!asin || audibleDetails['Reading Format'] !== 'Audiobook') {
+    return {};
+  }
+
+  const tld = audibleDetails['_detectedRegion'] || '';
+  let region = 'us';
+  if (tld === 'ca') region = 'ca';
+  else if (tld === 'co.uk' || tld === 'uk') region = 'uk';
+  else if (tld === 'com.au' || tld === 'au') region = 'au';
+  else if (tld === 'fr') region = 'fr';
+  else if (tld === 'de') region = 'de';
+  else if (tld === 'it') region = 'it';
+  else if (tld === 'es') region = 'es';
+  else if (tld === 'in') region = 'in';
+  else if (tld === 'co.jp' || tld === 'jp') region = 'jp';
+  else if (tld === 'com') region = 'us';
+  else {
+    // Fallback to host detection if no label found
+    if (window.location.host.includes('.ca')) region = 'ca';
+    else if (window.location.host.includes('.co.uk')) region = 'uk';
+    else if (window.location.host.includes('.com.au')) region = 'au';
+    else if (window.location.host.includes('.fr')) region = 'fr';
+    else if (window.location.host.includes('.de')) region = 'de';
+    else if (window.location.host.includes('.it')) region = 'it';
+    else if (window.location.host.includes('.es')) region = 'es';
+    else if (window.location.host.includes('.in')) region = 'in';
+    else if (window.location.host.includes('.co.jp')) region = 'jp';
+  }
+
+  try {
+    const res = await fetch(`https://api.audnex.us/books/${asin}?region=${region}`);
+    if (res.ok) {
+      const data = await res.json();
+      const details = {};
+      if (data.isbn) {
+        details['ISBN-13'] = data.isbn;
+      }
+      if (data.genres) {
+        details.Categories = data.genres.map(g => cleanText(g.name));
+      }
+      if (data.rating) {
+        details['Average Rating'] = parseFloat(data.rating);
+      }
+      logMarian("Fetched extra data from Audnexus for Amazon Audiobook", details);
+      return details;
+    }
+  } catch (e) {
+    logMarian("Failed to fetch Audnexus data for Amazon Audiobook", e);
+  }
+  return {};
 }
 
 async function getCover() {
@@ -235,10 +292,10 @@ function getAudibleDetails() {
     }
 
     // Match any Audible.<TLD> Release Date
-    if (/^Audible\.[^\s]+ Release Date$/i.test(label)) {
+    const regionMatch = label?.match(/^Audible\.([a-z.]+) Release Date$/i);
+    if (regionMatch) {
       details['Publication date'] = value;
-    } else if (label === 'Audible.com Release Date') {
-      details['Publication date'] = value;
+      details['_detectedRegion'] = regionMatch[1].toLowerCase();
     } else if (label === 'Program Type') {
       details['Reading Format'] = value;
       details['Edition Format'] = "Audible";
