@@ -87,6 +87,10 @@
 		"https://books.google.com.tr/books/*",
 		"https://books.google.ae/books/*",
 
+		"https://api.audnex.us/*",
+		"https://api.audible.com/*",
+		"https://www.googleapis.com/books/*",
+
 		"https://www.goodreads.com/*",
 		"https://app.thestorygraph.com/*",
 		"https://beta.thestorygraph.com/*",
