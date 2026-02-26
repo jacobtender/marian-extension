@@ -1,4 +1,4 @@
-import { cleanText, getFormattedText, logMarian } from '../shared/utils.js';
+import { cleanText, fetchBackground, getFormattedText, logMarian } from '../shared/utils.js';
 import { Extractor } from './AbstractExtractor.js';
 
 class audibleScraper extends Extractor {
@@ -76,9 +76,9 @@ async function fetchAudnexusApiDetails(asin) {
     else if (window.location.host.includes('.in')) region = 'in';
     else if (window.location.host.includes('.co.jp')) region = 'jp';
 
-    const res = await fetch(`https://api.audnex.us/books/${asin}?region=${region}`);
-    if (!res.ok) return details;
-    const data = await res.json();
+    const resHtml = await fetchBackground(`https://api.audnex.us/books/${asin}?region=${region}`);
+    if (!resHtml) return details;
+    const data = JSON.parse(resHtml);
 
     if (data.title) details.Title = data.title + (data.subtitle ? `: ${data.subtitle}` : '');
     if (data.summary) {
@@ -142,9 +142,18 @@ async function fetchAudnexusApiDetails(asin) {
 
 async function fetchAudibleApiDetails(asin) {
     const details = {};
-    const res = await fetch(`https://api.audible.com/1.0/catalog/products/${asin}?response_groups=category_ladders,contributors,media,product_attrs,product_desc,product_details,product_extended_attrs,rating,series&image_sizes=512,1024`);
-    if (!res.ok) return details;
-    const json = await res.json();
+    let resHtml;
+    try {
+        let apiHost = 'api.audible.com';
+        if (window.location.host.includes('audible.')) {
+            apiHost = window.location.host.replace(/^www\./, 'api.');
+        }
+        resHtml = await fetchBackground(`https://${apiHost}/1.0/catalog/products/${asin}?response_groups=category_ladders,contributors,media,product_attrs,product_desc,product_details,product_extended_attrs,rating,series&image_sizes=512,1024`);
+    } catch (e) {
+        return details;
+    }
+    if (!resHtml) return details;
+    const json = JSON.parse(resHtml);
     const data = json.product;
     if (!data) return details;
 

@@ -1,5 +1,6 @@
+import { addContributor, cleanText, collectObject, fetchBackground, getCoverData, getFormattedText, logMarian, normalizeReadingFormat } from '../shared/utils.js';
 import { Extractor } from "./AbstractExtractor.js"
-import { logMarian, getFormattedText, getCoverData, addContributor, cleanText, normalizeReadingFormat, collectObject } from '../shared/utils.js';
+
 const bookSeriesRegex = /^Book (\d+) of \d+$/i;
 
 const includedLabels = new Set([
@@ -131,9 +132,9 @@ async function fetchAudnexusDetails(asin, audibleDetails) {
   }
 
   try {
-    const res = await fetch(`https://api.audnex.us/books/${asin}?region=${region}`);
-    if (res.ok) {
-      const data = await res.json();
+    const resHtml = await fetchBackground(`https://api.audnex.us/books/${asin}?region=${region}`);
+    if (resHtml) {
+      const data = JSON.parse(resHtml);
       const details = {};
       if (data.isbn) {
         details['ISBN-13'] = data.isbn;

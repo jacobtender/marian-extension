@@ -89,6 +89,16 @@
 
 		"https://api.audnex.us/*",
 		"https://api.audible.com/*",
+		"https://api.audible.co.uk/*",
+		"https://api.audible.ca/*",
+		"https://api.audible.com.au/*",
+		"https://api.audible.de/*",
+		"https://api.audible.fr/*",
+		"https://api.audible.it/*",
+		"https://api.audible.es/*",
+		"https://api.audible.co.jp/*",
+		"https://api.audible.in/*",
+		"https://api.audible.com.mx/*",
 		"https://www.googleapis.com/books/*",
 
 		"https://www.goodreads.com/*",
