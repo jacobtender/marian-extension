@@ -49,7 +49,7 @@ class amazonScraper extends Extractor {
 
     // combined publisher date
     const pubDate = bookDetails["Publisher"]?.match(/^(?<pub>[^(;]+?)(?:; (?<edition>[\w ]+))? \((?<date>\d{1,2} \w+ \d{4})\)$/);
-    if (pubDate != undefined) {
+    if (pubDate !== undefined) {
       bookDetails["Publisher"] = cleanText(pubDate.groups["pub"]);
       bookDetails["Publication date"] = pubDate.groups["date"];
       if (pubDate.groups["edition"]) {
@@ -82,7 +82,14 @@ class amazonScraper extends Extractor {
       bookDetails["ISBN-10"] = asin;
     }
 
-    const audnexusPromise = fetchAudnexusDetails(asin, audibleDetails);
+    const audibleAsin = getAudibleAsin();
+    let audnexusPromise = undefined;
+    if (audibleAsin && audibleAsin !== asin) {
+      delete bookDetails["ASIN"];
+      bookDetails["Amazon ASIN"] = asin;
+      audibleDetails["ASIN"] = audibleAsin;
+      audnexusPromise = fetchAudnexusDetails(audibleAsin, audibleDetails);
+    }
 
     const mergedDetails = await collectObject([
       bookDetails,
@@ -185,7 +192,9 @@ async function getCover() {
   });
 
   // get original image
-  covers.forEach((value) => value && covers.add(getHighResImageUrl(value)));
+  [...covers]
+    .filter(i => i)
+    .forEach((url) => { covers.add(getHighResImageUrl(url)); });
 
   const coverList = Array.from(covers)
     .filter((x) => !x.includes("01RmK+J4pJL.gif")); // filter out no image image
@@ -324,6 +333,27 @@ function getBookDescription() {
   if (!container) return '';
 
   return getFormattedText(container);
+}
+
+function getAudibleAsin() {
+  // 1. Check hidden input
+  const hiddenInput = document.querySelector('input[name="audibleASIN"]');
+  if (hiddenInput?.value) return hiddenInput.value;
+  // 2. Check Sample Player JSON
+  const samplePlayer = document.querySelector('[data-play-audiosample-cloud-player]');
+  if (samplePlayer) {
+    try {
+      const config = JSON.parse(samplePlayer.dataset.playAudiosampleCloudPlayer);
+      const urlParams = new URLSearchParams(config.cloudPlayerUrl.split('?')[1]);
+      const asin = urlParams.get('asin');
+      if (asin) return asin;
+    } catch { }
+  }
+  // 3. Check Swatches
+  const audioSwatch = Array.from(document.querySelectorAll('#tmmSwatches .swatchElement'))
+    .find(el => el.textContent.toLowerCase().includes('audiobook') || el.textContent.toLowerCase().includes('audible'));
+
+  return audioSwatch?.dataset.asin || audioSwatch?.dataset.defaultasin || null;
 }
 
 function getSelectedFormat() {
