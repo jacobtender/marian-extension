@@ -50,7 +50,7 @@ class amazonScraper extends Extractor {
 
     // combined publisher date
     const pubDate = bookDetails["Publisher"]?.match(/^(?<pub>[^(;]+?)(?:; (?<edition>[\w ]+))? \((?<date>\d{1,2} \w+ \d{4})\)$/);
-    if (pubDate !== undefined) {
+    if (pubDate != null) {
       bookDetails["Publisher"] = cleanText(pubDate.groups["pub"]);
       bookDetails["Publication date"] = pubDate.groups["date"];
       if (pubDate.groups["edition"]) {
@@ -159,7 +159,7 @@ async function getCover() {
 
   const coverList = Array.from(covers)
     .filter((x) => !x.includes("01RmK+J4pJL.gif")); // filter out no image image
-  console.log(coverList)
+  // console.log(coverList)
 
   const coverRes = await getCoverData(coverList);
   if (coverRes.imgScore === 0) return {}
