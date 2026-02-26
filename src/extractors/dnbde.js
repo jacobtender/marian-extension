@@ -1,8 +1,8 @@
 import { Extractor } from './AbstractExtractor.js';
 import {
-  logMarian, runtime, getFormattedText, getCoverData, remapKeys,
-  addContributor, cleanText,
-  collectObject
+  addContributor, cleanText, collectObject,
+  fetchBackground, getCoverData, getFormattedText,
+  logMarian, remapKeys
 } from '../shared/utils.js';
 
 const remapings = {
@@ -70,7 +70,7 @@ function extractTable(/**@type{HTMLTableElement}*/container) {
     }
 
     const key = cleanText(children[0].textContent);
-    let value = cleanText(children[1].textContent);
+    const value = cleanText(children[1].textContent);
     // exceptions
     if (key.includes("Datensatz")) { // db link
       // https://d-nb.info/XXXXXXXXXXX
@@ -132,7 +132,7 @@ function extractTable(/**@type{HTMLTableElement}*/container) {
     }
     if (key === "Weiterführende Informationen" && value === "Inhaltstext") {  // description
       const descriptionLink = children[1].querySelector("a")?.href || null;
-      if (!!descriptionLink) {
+      if (descriptionLink) {
         table["descriptionLink"] = descriptionLink;
         continue;
       }
@@ -183,16 +183,13 @@ async function getDescription(bookDetails) {
 
   const url = new URL(link);
   url.protocol = "https:"; // have to be done
-  const res = await runtime.sendMessage({
-    action: 'fetchDepositData',
-    url: url.toString()
-  });
-  if (!res || res.status !== 'success') {
-    logMarian('Error from background script:', res && res.message);
+  const res = await fetchBackground(url.toString());
+  if (!res) {
+    logMarian('Error from background script: No response');
     return {}
   }
 
-  const text = extractTextFromHTML(res.data);
+  const text = extractTextFromHTML(res);
   return { "Description": text }
 }
 

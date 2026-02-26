@@ -267,6 +267,24 @@ const title = queryDeep('h1', ['product-header']);
 Gets a DOM from a html request.
 If this is used in a scraper script, then it will only work for domains that the current page has CORS access to.
 
+### fetchBackground
+
+Performs an HTTP request via the background script to bypass CORS and Content-Security-Policy (CSP) restrictions.
+
+Takes in a `url` string to fetch.
+Returns a promise that resolves with the response text on success, or rejects with an error message on failure.
+
+Example:
+```javascript
+try {
+  const htmlString = await fetchBackground('https://example.com/data');
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = htmlString;
+} catch (err) {
+  console.error("Failed to fetch data:", err);
+}
+```
+
 ### runtime
 
 Exports the `browser.runtime` (Firefox) or `chrome.runtime` (Chrome) API,

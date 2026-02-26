@@ -292,7 +292,7 @@ export function addMapping(mappings, name, ids) {
     ids = [ids];
   }
 
-  let map = mappings[name] ?? [];
+  const map = mappings[name] ?? [];
   for (const id of ids) {
     if (!map.includes(id)) map.push(id);
   }
@@ -372,7 +372,7 @@ export async function collectObject(items) {
 
   const objList = await Promise.all(items);
 
-  let obj = {};
+  const obj = {};
   for (let i = 0; i < objList.length; i += 1) {
     const elm = objList[i];
     if (elm == undefined) {
@@ -408,6 +408,19 @@ export async function fetchHTML(url, args = undefined) {
   } catch (error) {
     console.error('Error fetching HTML:', error);
   }
+}
+
+/**
+ * Performs an HTTP request via the background script to bypass CSP restrictions.
+ * @param {string} url URL to fetch
+ * @returns {Promise<string>} response text
+ */
+export async function fetchBackground(url) {
+  const response = await runtime.sendMessage({ action: 'fetchUrl', url });
+  if (response && response.status === 'success') {
+    return response.data;
+  }
+  throw new Error(response?.message || 'Failed to fetch via background');
 }
 
 export { StorageBackedSet } from "./StorageSet.js";

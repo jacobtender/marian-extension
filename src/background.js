@@ -200,7 +200,7 @@ runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
-  if (request.action === 'fetchDepositData') {
+  if (request.action === 'fetchUrl') {
     handleFetchRequest(request.url).then(sendResponse);
     return true;
   }
