@@ -300,18 +300,10 @@ async function getInventaireDetails(id) {
   // Collect all details
   const result = await collectObject(detailsList);
 
-  // Merge contributors
-  let contributors = result["Contributors"] || [];
-  if (Array.isArray(result["Contributors"])) {
-    contributors = result["Contributors"];
-  }
-  delete result["Contributors"];
-  result["Contributors"] = contributors;
-
   // Merge mappings
   if (result["Mappings"]) {
     Object.entries(result["Mappings"]).forEach(([k, v]) => {
-      v.forEach(i => addMapping(mappings, k, i));
+      v.forEach(i => addMlpping(mappings, k, i));
     });
   }
   result["Mappings"] = mappings;

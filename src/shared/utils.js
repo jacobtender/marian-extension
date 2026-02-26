@@ -375,12 +375,29 @@ export async function collectObject(items) {
   const obj = {};
   for (let i = 0; i < objList.length; i += 1) {
     const elm = objList[i];
-    if (elm == undefined) {
+    if (elm == null) {
       logMarian(`WARN: element number ${i} is ${elm}`)
       continue;
     }
-    Object.entries(elm)
-      .forEach(([k, v]) => obj[k] = v);
+    for (let [k, v] of Object.entries(elm)) {
+      // Merge contributors
+      if (k === "Contributors" && Array.isArray(v)) {
+        const contributors = obj["Contributors"] || [];
+        for (const item of v) {
+          if (item?.name) addContributor(contributors, item.name, item.roles || []);
+        }
+        v = contributors;
+      }
+
+      // Merge mappings
+      if (k === "Mappings") {
+        let mappings = obj["Mappings"] || {};
+        for (const [mapping, ids] of Object.entries(v)) mappings = addMapping(mappings, mapping, ids);
+        v = mappings;
+      }
+
+      obj[k] = v;
+    };
   }
 
   return obj;
@@ -420,14 +437,14 @@ export async function fetchBackground(url) {
   if (response && response.status === 'success') {
     return response.data;
   }
-  
+
   const msg = response?.message || '';
   if (msg.includes("NetworkError") || msg.includes("Failed to fetch") || msg.includes("CORS") || msg.includes("Missing Allow Origin")) {
-      const u = new URL(url);
-      const origin = `${u.protocol}//${u.host}/*`;
-      throw new Error(`MISSING_PERMISSION:${origin}`);
+    const u = new URL(url);
+    const origin = `${u.protocol}//${u.host}/*`;
+    throw new Error(`MISSING_PERMISSION:${origin}`);
   }
-  
+
   throw new Error(msg || 'Failed to fetch via background');
 }
 

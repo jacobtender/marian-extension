@@ -85,7 +85,7 @@ class amazonScraper extends Extractor {
 
     const audibleAsin = getAudibleAsin();
     let apiPromise = {};
-    if (audibleAsin && audibleAsin !== asin) {
+    if (audibleAsin) {
       delete bookDetails["ASIN"];
       bookDetails["Amazon ASIN"] = asin;
       audibleDetails["ASIN"] = audibleAsin;
@@ -95,7 +95,7 @@ class amazonScraper extends Extractor {
     const mergedDetails = await collectObject([
       bookDetails,
       audibleDetails,
-      apiPromise, // overwriting contributor scraped data from amazon
+      apiPromise,
       coverData,
     ]);
 

@@ -146,6 +146,8 @@ Takes in a list of objects, promises of objects or null/undefined.
 it will await all promises at the same time and then merge them into a single object,
 if a key is present in more than one object it will be overwritten, by order of the list.
 
+It will merge `Collections` and `Mappings`
+
 ### getCoverData
 
 Takes in a URL, or a list of URLs and returns an
