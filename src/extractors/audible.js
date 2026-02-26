@@ -65,18 +65,39 @@ async function getAudibleDetails() {
     }
 }
 
-async function fetchAudnexusApiDetails(asin) {
-    const details = {};
+/**
+ * get a region for Audnexus API, defaulting to us 
+ *
+ * @param {string} tld
+ */
+export function getRegion(tld) {
     let region = 'us';
-    if (window.location.host.includes('.ca')) region = 'ca';
-    else if (window.location.host.includes('.co.uk')) region = 'uk';
-    else if (window.location.host.includes('.com.au')) region = 'au';
-    else if (window.location.host.includes('.fr')) region = 'fr';
-    else if (window.location.host.includes('.de')) region = 'de';
-    else if (window.location.host.includes('.it')) region = 'it';
-    else if (window.location.host.includes('.es')) region = 'es';
-    else if (window.location.host.includes('.in')) region = 'in';
-    else if (window.location.host.includes('.co.jp')) region = 'jp';
+    if (false);
+    else if (tld.endsWith('.ca')) region = 'ca';
+    else if (tld.endsWith('.co.uk')) region = 'uk';
+    else if (tld.endsWith('.com.au')) region = 'au';
+    else if (tld.endsWith('.fr')) region = 'fr';
+    else if (tld.endsWith('.de')) region = 'de';
+    else if (tld.endsWith('.it')) region = 'it';
+    else if (tld.endsWith('.es')) region = 'es';
+    else if (tld.endsWith('.in')) region = 'in';
+    else if (tld.endsWith('.co.jp')) region = 'jp';
+    else if (tld.endsWith('.com.mx')) region = 'mx';
+
+    return region;
+}
+
+/**
+ * @param {string} asin - audible ASIN
+ * @param {string} [region=null] API region to search in
+ */
+export async function fetchAudnexusApiDetails(asin, region = null) {
+    const details = {};
+    if (region == null) {
+        if (!window.location.host.includes('audible.')) throw new Error("Must provide region");
+        const tld = window.location.host.split("audible").pop()
+        region = getRegion(tld);
+    }
 
     const resHtml = await fetchBackground(`https://api.audnex.us/books/${asin}?region=${region}`);
     if (!resHtml) return details;
@@ -142,14 +163,24 @@ async function fetchAudnexusApiDetails(asin) {
     return details;
 }
 
-async function fetchAudibleApiDetails(asin) {
+/**
+ * @param {string} asin - audible ASIN;
+ * @param {string} [tld=null] top level domain to use for API
+ */
+export async function fetchAudibleApiDetails(asin, tld = null) {
     const details = {};
     let resHtml;
+
+    if (tld == null) {
+        if (!window.location.host.includes('audible.')) throw new Error("Must provide tld");
+        tld = ".com";
+        tld = window.location.host.split("audible").pop();
+    }
+
+    if (!tld.startsWith(".")) tld = `.${tld}`;
+    const apiHost = `api.audible${tld}`;
+
     try {
-        let apiHost = 'api.audible.com';
-        if (window.location.host.includes('audible.')) {
-            apiHost = window.location.host.replace(/^www\./, 'api.');
-        }
         resHtml = await fetchBackground(`https://${apiHost}/1.0/catalog/products/${asin}?response_groups=category_ladders,contributors,media,product_attrs,product_desc,product_details,product_extended_attrs,rating,series&image_sizes=512,1024`);
     } catch (e) {
         if (e.message?.startsWith('MISSING_PERMISSION:')) throw e;
@@ -223,9 +254,9 @@ async function fetchAudibleApiDetails(asin) {
                 }
             }
         }
-        if (categories.size > 0) {
-            details.Categories = Array.from(categories);
-        }
+        // if (categories.size > 0) {
+        //     details.Categories = Array.from(categories);
+        // }
     }
 
     // if (data.rating) {
