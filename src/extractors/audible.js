@@ -99,9 +99,18 @@ export async function fetchAudnexusApiDetails(asin, region = null) {
         region = getRegion(tld);
     }
 
-    const resHtml = await fetchBackground(`https://api.audnex.us/books/${asin}?region=${region}`);
-    if (!resHtml) return details;
-    const data = JSON.parse(resHtml);
+    let data;
+
+    try {
+        const resHtml = await fetchBackground(`https://api.audnex.us/books/${asin}?region=${region}`);
+        if (!resHtml) return details;
+        data = JSON.parse(resHtml);
+        if (!data) return details;
+    } catch {
+        if (e.message?.startsWith('MISSING_PERMISSION:')) throw e;
+        logMarian("Audnexus fetch failed", e);
+        return details;
+    }
 
     if (data.title) details.Title = data.title + (data.subtitle ? `: ${data.subtitle}` : '');
     if (data.summary) {
@@ -169,7 +178,7 @@ export async function fetchAudnexusApiDetails(asin, region = null) {
  */
 export async function fetchAudibleApiDetails(asin, tld = null) {
     const details = {};
-    let resHtml;
+    let data;
 
     if (tld == null) {
         if (!window.location.host.includes('audible.')) throw new Error("Must provide tld");
@@ -182,14 +191,15 @@ export async function fetchAudibleApiDetails(asin, tld = null) {
 
     try {
         resHtml = await fetchBackground(`https://${apiHost}/1.0/catalog/products/${asin}?response_groups=category_ladders,contributors,media,product_attrs,product_desc,product_details,product_extended_attrs,rating,series&image_sizes=512,1024`);
+
+        if (!resHtml) return details;
+        const json = JSON.parse(resHtml);
+        data = json.product;
+        if (!data) return details;
     } catch (e) {
         if (e.message?.startsWith('MISSING_PERMISSION:')) throw e;
         return details;
     }
-    if (!resHtml) return details;
-    const json = JSON.parse(resHtml);
-    const data = json.product;
-    if (!data) return details;
 
     if (data.title) details.Title = data.title + (data.subtitle ? `: ${data.subtitle}` : '');
     if (data.publisher_summary) {
