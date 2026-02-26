@@ -34,6 +34,7 @@ async function getAudibleDetails() {
             }
         } catch (err) {
             logMarian('API extraction failed', err);
+            if (err.message?.startsWith('MISSING_PERMISSION:')) throw err;
         }
 
         // overwrite with better data when available
@@ -45,11 +46,12 @@ async function getAudibleDetails() {
             }
         } catch (err) {
             logMarian('Audnexus extraction failed', err);
+            if (err.message?.startsWith('MISSING_PERMISSION:')) throw err;
         }
 
         if (!details['Reading Format']) details['Reading Format'] = 'Audiobook';
         if (!details['Edition Format'] && details['Reading Format']) {
-            details['Edition Format'] = details['Reading Format'];
+            details['Edition Format'] = "Audible";
         }
 
         delete details.Edition;
@@ -150,6 +152,7 @@ async function fetchAudibleApiDetails(asin) {
         }
         resHtml = await fetchBackground(`https://${apiHost}/1.0/catalog/products/${asin}?response_groups=category_ladders,contributors,media,product_attrs,product_desc,product_details,product_extended_attrs,rating,series&image_sizes=512,1024`);
     } catch (e) {
+        if (e.message?.startsWith('MISSING_PERMISSION:')) throw e;
         return details;
     }
     if (!resHtml) return details;

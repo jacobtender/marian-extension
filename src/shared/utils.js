@@ -420,7 +420,15 @@ export async function fetchBackground(url) {
   if (response && response.status === 'success') {
     return response.data;
   }
-  throw new Error(response?.message || 'Failed to fetch via background');
+  
+  const msg = response?.message || '';
+  if (msg.includes("NetworkError") || msg.includes("Failed to fetch") || msg.includes("CORS") || msg.includes("Missing Allow Origin")) {
+      const u = new URL(url);
+      const origin = `${u.protocol}//${u.host}/*`;
+      throw new Error(`MISSING_PERMISSION:${origin}`);
+  }
+  
+  throw new Error(msg || 'Failed to fetch via background');
 }
 
 export { StorageBackedSet } from "./StorageSet.js";

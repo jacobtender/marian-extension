@@ -150,6 +150,7 @@ async function fetchAudnexusDetails(asin, audibleDetails) {
     }
   } catch (e) {
     logMarian("Failed to fetch Audnexus data for Amazon Audiobook", e);
+    if (e.message?.startsWith('MISSING_PERMISSION:')) throw e;
   }
   return {};
 }

@@ -153,6 +153,10 @@ Please <a href="${issueUrl}" target="_blank" rel="noopener noreferrer">report</a
           reject('Failed to retrieve book details.');
           return;
         }
+        if (details.__marian_error) {
+          reject(details.__marian_error);
+          return;
+        }
         resolve(details);
       });
     }

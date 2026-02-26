@@ -422,6 +422,16 @@ async function getDetailsForTab(tab) {
     });
   } catch (err) {
     console.error("fetch details fail", err);
+    if (typeof err === 'string' && err.startsWith('MISSING_PERMISSION:')) {
+      const origin = err.split('MISSING_PERMISSION:')[1];
+      showStatus(`Permissions missing for ${origin}.<br/>
+<button 
+  id="permGrant" 
+  data-origin="${origin}"
+  data-tab-id="${tab.id}"
+>Grant Permissions</button>`);
+      return;
+    }
     showStatus("An issue occurred when fetching data");
     notifyBackground("REFRESH_ICON", { tab });
   }
