@@ -121,7 +121,7 @@ export async function fetchAudnexusApiDetails(asin, region = null) {
     if (data.image) details.img = data.image;
     if (data.publisherName) details.Publisher = cleanText(data.publisherName);
     if (data.releaseDate) details['Publication date'] = new Date(data.releaseDate).toISOString().split('T')[0];
-    if (data.language) details.Language = data.language;
+    if (data.language) details.Language = data.language.charAt(0).toUpperCase() + data.language.slice(1);
     if (data.isbn) details['ISBN-13'] = data.isbn;
 
     const contributors = [];
@@ -214,7 +214,7 @@ export async function fetchAudibleApiDetails(asin, tld = null) {
 
     if (data.publisher_name) details.Publisher = cleanText(data.publisher_name);
     if (data.release_date) details['Publication date'] = data.release_date;
-    if (data.language) details.Language = data.language;
+    if (data.language) details.Language = data.language.charAt(0).toUpperCase() + data.language.slice(1);
     if (data.isbn) details['ISBN-13'] = data.isbn;
 
     const contributors = [];
