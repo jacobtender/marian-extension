@@ -99,12 +99,16 @@ async function getDescription() {
 function getMetadata() {
   let details = {};
 
-  // author
-  let author = document.querySelector(`#book-author, #main-feature h2`)?.textContent;
-  if (author) {
-    const name = normalizeAuthorName(cleanText(author));
-    details["Contributors"] = addContributor([], name, "Author");
+  // authors
+  const authors = [...document.querySelectorAll(`#book-author, #main-feature h2 a>span`)]
+    .map(i => cleanText(i.textContent))
+    .filter(i => i !== ";")
+    .map(normalizeAuthorName);
+  const contibutors = [];
+  for (const contibutor of authors) {
+    addContributor(contibutors, contibutor, "Author");
   }
+  details["Contributors"] = contibutors;
 
   // details
   let metadata = document.querySelector(`dl.listing-metadata`);
