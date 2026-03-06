@@ -5,19 +5,24 @@ class audibleScraper extends Extractor {
     get _name() { return "Audible Extractor"; }
     needsReload = false;
     _sitePatterns = [
-        /^https:\/\/(?:www\.)?audible\.[a-z.]+\/+(?:pd|p|ac)\/+[^/]+\/+(?<asin>B[\dA-Z]{9}|\d{9}(?:X|\d))\b/
+        /^https:\/\/(?:www\.)?audible\.[a-z.]+\/+(?:pd|p|ac)\/+[^/]+\/+(?<asin>B[\dA-Z]{9}|\d{9}(?:X|\d))\b/i
     ];
 
-    async getDetails() {
-        return getAudibleDetails();
+    /**
+     * Parse an ASIN identifier from Audible URLs.
+     *
+     * @param {string | null | undefined} url URL that may contain an ASIN.
+     * @returns {string | null} Parsed ASIN in uppercase, or null if none found.
+     */
+    extractAsinFromUrl(url) {
+        if (!url) return null;
+        const match = url.match(this._sitePatterns[0])?.groups?.asin || url.match(/asin=([A-Z0-9]{10})/i)?.[1];
+        return match?.toUpperCase() ?? null;
     }
-}
 
-async function getAudibleDetails() {
-    const details = {};
-
-    try {
-        const asin = extractAsinFromUrl(window.location.href);
+    async getDetails() {
+        const details = {};
+        const asin = this.extractAsinFromUrl(window.location.href);
 
         if (!asin) {
             logMarian('Audible extraction failed: No ASIN found in URL');
@@ -58,9 +63,6 @@ async function getAudibleDetails() {
         delete details.Version;
 
         logMarian('Audible extraction complete', details);
-        return details;
-    } catch (e) {
-        logMarian('Audible extraction failed', { error: String(e) });
         return details;
     }
 }
@@ -278,18 +280,6 @@ export async function fetchAudibleApiDetails(asin, tld = null) {
     // }
 
     return details;
-}
-
-/**
- * Parse an ASIN identifier from Audible URLs.
- *
- * @param {string | null | undefined} url URL that may contain an ASIN.
- * @returns {string | null} Parsed ASIN in uppercase, or null if none found.
- */
-function extractAsinFromUrl(url) {
-    if (!url) return null;
-    const match = url.match(/\/(?:pd|p)\/[^/]+\/([A-Z0-9]{10})(?:[/?]|$)/i) || url.match(/asin=([A-Z0-9]{10})/i);
-    return match ? match[1].toUpperCase() : null;
 }
 
 export { audibleScraper };
