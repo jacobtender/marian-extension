@@ -5,7 +5,7 @@ class audibleScraper extends Extractor {
     get _name() { return "Audible Extractor"; }
     needsReload = false;
     _sitePatterns = [
-        /^https:\/\/(?:www\.)?audible\.[a-z.]+\/.*?([A-Z0-9]{10})\b/,
+        /^https:\/\/(?:www\.)?audible\.[a-z.]+\/.*?(?<=\/)(?<asin>B[\dA-Z]{9}|\d{9}(?:X|\d))\b/,
     ];
 
     async getDetails() {
