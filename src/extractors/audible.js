@@ -108,7 +108,7 @@ export async function fetchAudnexusApiDetails(asin, region = null) {
         if (!resHtml) return details;
         data = JSON.parse(resHtml);
         if (!data) return details;
-    } catch {
+    } catch (e) {
         if (e.message?.startsWith('MISSING_PERMISSION:')) throw e;
         logMarian("Audnexus fetch failed", e);
         return details;
