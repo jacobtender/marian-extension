@@ -117,6 +117,7 @@ async function fetchApiDetails(asin, audibleDetails) {
   }
 
   let tld = audibleDetails['_detectedRegion'] || document.location.host.split("amazon").pop();
+  console.log("Tldldd", tld);
   const region = getRegion(tld);
 
   return await collectObject([
@@ -266,7 +267,7 @@ function getAudibleDetails() {
     }
 
     // Match any Audible.<TLD> Release Date
-    const regionMatch = label?.match(/^Audible\.([a-z.]+) Release Date$/i);
+    const regionMatch = label?.match(/^Audible(\.[a-z.]+) Release Date$/i);
     if (regionMatch) {
       details['Publication date'] = value;
       details['_detectedRegion'] = regionMatch[1].toLowerCase();
