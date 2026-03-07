@@ -117,7 +117,6 @@ async function fetchApiDetails(asin, audibleDetails) {
   }
 
   let tld = audibleDetails['_detectedRegion'] || document.location.host.split("amazon").pop();
-  console.log("Tldldd", tld);
   const region = getRegion(tld);
 
   return await collectObject([
