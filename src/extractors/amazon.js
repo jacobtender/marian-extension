@@ -85,7 +85,9 @@ class amazonScraper extends Extractor {
 
     const audibleAsin = getAudibleAsin();
     let apiPromise = {};
-    if (audibleAsin) {
+    if (audibleAsin &&
+      (bookDetails["Reading Format"] === "Audiobook" || audibleDetails["Reading Format"] === "Audiobook")
+    ) {
       delete bookDetails["ASIN"];
       bookDetails["Amazon ASIN"] = asin;
       audibleDetails["ASIN"] = audibleAsin;
