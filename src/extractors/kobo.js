@@ -93,9 +93,9 @@ function getKoboSeries(bookDetails) {
 }
 
 function getKoboBookTitle(bookDetails) {
-    const h1 = document.querySelector('.title-widget h1');
-    const rawTitle = cleanText(h1?.childNodes[0]?.textContent);
-    rawTitle ? bookDetails["Title"] = rawTitle : null;
+    const title = cleanText(document.querySelector('.title-widget h1')?.textContent);
+    const subtitle = cleanText(document.querySelector('.title-widget p')?.textContent);
+    if (title) bookDetails["Title"] = subtitle ? `${title}: ${subtitle}` : title;
 }
 
 function getKoboFormatInfo(bookDetails, url) {
