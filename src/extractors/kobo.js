@@ -148,7 +148,7 @@ function extraKoboInfo(bookDetails) {
     for (let lindex = 0; lindex < extraMetadata.length; lindex++) {
         let mytext = extraMetadata[lindex].textContent;
         if (lindex == 0) {
-            extrainfo['Publisher'] = mytext.trim;
+            extrainfo['Publisher'] = cleanText(mytext);
         } else {
             let [a, b] = mytext.split(':');
             extrainfo[a.trim()] = b.trim();
@@ -160,10 +160,13 @@ function extraKoboInfo(bookDetails) {
             case 'Release Date':
                 bookDetails['Publication date'] = extrainfo[label];
                 break;
+            case 'Publisher':
+                if (!bookDetails["Publisher"]) bookDetails["Publisher"] = extrainfo["Publisher"];
+                break;
             case 'Imprint':
                 // if the imprint and publisher are the same, use the publisher; otherwise use the imprint
                 // left in case we need to revisit to include both
-                if (extrainfo['Publisher'] == extrainfo[label]) {
+                if (extrainfo['Publisher'] === extrainfo[label]) {
                     bookDetails['Publisher'] = extrainfo['Publisher'];
                 } else {
                     bookDetails['Publisher'] = extrainfo[label];
