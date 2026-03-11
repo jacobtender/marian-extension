@@ -1,5 +1,5 @@
 import { Extractor } from "./AbstractExtractor.js";
-import { addContributor, getCoverData, logMarian, cleanText, normalizeReadingFormat, collectObject } from "../shared/utils.js";
+import { addContributor, getCoverData, logMarian, cleanText, normalizeReadingFormat, collectObject, getFormattedText } from "../shared/utils.js";
 
 class koboScraper extends Extractor {
     get _name() { return "Kobo Extractor"; }
@@ -125,18 +125,14 @@ function getKoboFormatInfo(bookDetails, url) {
     // TODO: see if edition format can be extracted (see download options)
 }
 
-function joinContent(elements) {
-    return Array.from(elements).map(item => cleanText(item.textContent)).join("\n");
-}
-
 function extractKoboDescription(bookDetails) {
-    const descriptionEl = document.querySelectorAll('#synopsis div[data-full-synopsis] p');
-    const fallbackDescriptionEl = document.querySelectorAll('.synopsis-description p');
+    const descriptionEl = document.querySelector('#synopsis div[data-full-synopsis]');
+    const fallbackDescriptionEl = document.querySelector('.synopsis-description');
     let description = null;
     if (descriptionEl) {
-        description = joinContent(descriptionEl);
+        description = getFormattedText(descriptionEl);
     } else if (fallbackDescriptionEl) {
-        description = joinContent(fallbackDescriptionEl);
+        description = getFormattedText(fallbackDescriptionEl);
     }
     bookDetails["Description"] = description;
 }

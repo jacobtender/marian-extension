@@ -71,16 +71,20 @@ export function getFormattedText(element) {
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       const tagName = node.tagName.toLowerCase();
 
-      // Process child nodes first
+      // Handle <br> inline before children (it has none, but position matters)
+      if (tagName === 'br') {
+        result += '\n';
+        return; // No children to process
+      }
+
+      // Process child nodes
       for (const child of node.childNodes) {
         processNode(child);
       }
 
-      // Add appropriate line breaks after processing content
+      // Post-content line breaks for block elements
       if (tagName === 'p') {
         result += '\n\n'; // Double newline after paragraphs
-      } else if (tagName === 'br') {
-        result += '\n';   // Single newline for <br>
       } else if (['div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li'].includes(tagName)) {
         result += '\n';   // Single newline for other block elements
       }
