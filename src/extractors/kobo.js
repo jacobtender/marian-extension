@@ -82,11 +82,11 @@ function extractKoboContributors(bookDetails) {
 function getKoboSeries(bookDetails) {
     if (document.querySelector('.product-sequence-field a')) {
         let seriesInfoName = document.querySelector('.product-sequence-field a');
-        let name = seriesInfoName.textContent.trim();
+        let name = cleanText(seriesInfoName.textContent);
         bookDetails['Series'] = name;
         let seriesPlace = document.querySelector('.sequenced-name-prefix');
         if (seriesPlace.textContent.match(/\d+/) > 0) {
-            let seriesNum = seriesPlace.textContent.trim();
+            let seriesNum = cleanText(seriesPlace.textContent);
             let number = seriesNum.match(/\d+/);
             bookDetails['Series Place'] = number[0];
         }
@@ -151,7 +151,7 @@ function extraKoboInfo(bookDetails) {
             extrainfo['Publisher'] = cleanText(mytext);
         } else {
             let [a, b] = mytext.split(':');
-            extrainfo[a.trim()] = b.trim();
+            extrainfo[cleanText(a)] = cleanText(b);
         }
     }
     for (let label in extrainfo) {
