@@ -3,6 +3,7 @@ import { addContributor, getCoverData, logMarian, cleanText, normalizeReadingFor
 
 class koboScraper extends Extractor {
     get _name() { return "Kobo Extractor"; }
+    needsReload = false;
     _sitePatterns = [
         /^https?:\/\/(www\.)?kobo\.[a-z]{2,10}\/[a-z]{2,5}\/[a-z]{2,5}\/[a-z]{1,5}book\/[0-9a-z\-]+/,
     ];
