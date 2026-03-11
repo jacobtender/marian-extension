@@ -245,11 +245,11 @@ function getClassicGoogleBooksDetails() {
     }
 
     // assuming that its always in the format of "Publisher name, publication year"
-    const pubSplit = bookInfo["Publisher"].textContent.split(",");
-    // const pubYear = pubSplit[pubSplit.length - 1];
-    // bookDetails["Publication date"] = new Date(+pubYear, 0).toISOString();
-    bookDetails["Publisher"] = cleanText(pubSplit.slice(0, pubSplit.length - 1).join(","));
-    delete bookInfo["Publisher"];
+    const pubSplit = bookInfo["Publisher"]?.textContent?.split(",");
+    if (pubSplit) {
+        bookDetails["Publisher"] = cleanText(pubSplit.slice(0, pubSplit.length - 1).join(","));
+        delete bookInfo["Publisher"];
+    }
 
     const headerInfo = document.querySelectorAll("#bookinfo .bookinfo_sectionwrap div");
     const pubYearElement = Array.from(document.querySelectorAll("#bookinfo .bookinfo_sectionwrap div"))
@@ -268,6 +268,10 @@ function getClassicGoogleBooksDetails() {
             addContributor(contributors, cleanText(author.textContent), "Author")
         );
         delete bookInfo["Authors"];
+    }
+    if ("Illustrated by" in bookInfo) {
+        addContributor(contributors, cleanText(bookInfo["Illustrated by"].textContent), "Illustrator");
+        delete bookInfo["Author"];
     }
     bookDetails["Contributors"] = contributors;
 
