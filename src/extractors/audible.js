@@ -101,6 +101,8 @@ export async function fetchAudnexusApiDetails(asin, region = null) {
         region = getRegion(tld);
     }
 
+    details["Audible Region"] = region;
+
     let data;
 
     try {
@@ -190,6 +192,8 @@ export async function fetchAudibleApiDetails(asin, tld = null) {
 
     if (!tld.startsWith(".")) tld = `.${tld}`;
     const apiHost = `api.audible${tld}`;
+
+    details["Audible Region"] = getRegion(tld);
 
     try {
         resHtml = await fetchBackground(`https://${apiHost}/1.0/catalog/products/${asin}?response_groups=category_ladders,contributors,media,product_attrs,product_desc,product_details,product_extended_attrs,rating,series&image_sizes=512,1024`);
