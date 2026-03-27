@@ -484,6 +484,9 @@ async function setComboboxValue(control, value, field) {
   if (field?.comboboxStrategy === "publisher-exact-click" && exactDisplayMatch) {
     triggerPointerClick(exactDisplayMatch);
     await wait(150);
+  } else if (field?.comboboxStrategy === "matched-option-enter" && exactDisplayMatch) {
+    triggerPointerClick(exactDisplayMatch);
+    await wait(150);
   } else if (field?.comboboxStrategy === "first-option-enter") {
     triggerKeyboardEvent(control, "ArrowDown");
     await wait(30);
