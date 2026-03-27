@@ -36,6 +36,10 @@ function copyManifests(target) {
     ...targetManifest
   }
 
+  if (target === "firefox" && Array.isArray(combinedManifest.host_permissions)) {
+    combinedManifest.optional_host_permissions = [...combinedManifest.host_permissions];
+  }
+
   fs.writeFileSync(path.join(destDir, "manifest.json"), JSON.stringify(combinedManifest, null, 2))
 }
 

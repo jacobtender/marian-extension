@@ -452,6 +452,18 @@ export function addFillHardcoverButton() {
         { preserveDetails: true }
       );
     } catch (err) {
+      const message = err?.message || String(err);
+      if (message.startsWith('MISSING_PERMISSION:')) {
+        const origin = message.split('MISSING_PERMISSION:')[1];
+        showStatus(`Permissions missing for ${origin}.<br/>
+<button 
+  id="permGrant" 
+  data-origin="${origin}"
+  data-tab-id="${tab.id}"
+>Grant Permissions</button>`, { preserveDetails: true });
+        return;
+      }
+
       showStatus(err.message || String(err), { preserveDetails: true });
     }
   });
@@ -474,8 +486,9 @@ async function getDetailsForTab(tab) {
     });
   } catch (err) {
     console.error("fetch details fail", err);
-    if (typeof err === 'string' && err.startsWith('MISSING_PERMISSION:')) {
-      const origin = err.split('MISSING_PERMISSION:')[1];
+    const message = err?.message || String(err);
+    if (message.startsWith('MISSING_PERMISSION:')) {
+      const origin = message.split('MISSING_PERMISSION:')[1];
       showStatus(`Permissions missing for ${origin}.<br/>
 <button 
   id="permGrant" 
