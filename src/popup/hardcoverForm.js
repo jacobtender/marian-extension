@@ -1,8 +1,8 @@
 import { getHardcoverEditTarget } from "../shared/hardcover";
 
 const DEBUG_FIELDS = false;
-const DEBUG_PUBLISHER = true;
-const DEBUG_COVER = true;
+const DEBUG_PUBLISHER = false;
+const DEBUG_COVER = false;
 
 function normalizeSpace(value) {
   return (value || "").replace(/\s+/g, " ").trim().toLowerCase();
@@ -80,6 +80,14 @@ async function fillCover(details, field) {
   const section = findSectionByLabelText(field.sectionLabel);
   debugField("Cover", "resolved section", { found: !!section, coverUrl });
   if (!section) return false;
+
+  const existingCoverImage = section.querySelector('img');
+  if (existingCoverImage) {
+    debugField("Cover", "skipping existing cover", {
+      src: existingCoverImage.getAttribute("src")
+    });
+    return true;
+  }
 
   const pickerButton = section.querySelector('button[aria-haspopup="listbox"]');
   debugField("Cover", "picker button", { found: !!pickerButton });
@@ -248,6 +256,45 @@ function getNormalizedControlValue(control) {
   }
 
   return String(control.value ?? "").trim();
+}
+
+function getButtonDisplayText(control) {
+  const text = normalizeSpace(control.textContent || "");
+  if (!text) return "";
+
+  const placeholderPrefixes = [
+    "select",
+    "no cover set",
+    "unset ",
+    "upload a new cover",
+    "click to select a file",
+    "tap to select a file"
+  ];
+
+  if (placeholderPrefixes.some((prefix) => text.startsWith(prefix))) {
+    return "";
+  }
+
+  return text;
+}
+
+function controlHasMeaningfulValue(control, field, desiredValue) {
+  if (!control) return false;
+
+  const tagName = control.tagName.toLowerCase();
+  if (tagName === "input" || tagName === "textarea" || tagName === "select") {
+    const currentValue = getNormalizedControlValue(control);
+    if (!currentValue) return false;
+
+    if (desiredValue == null || desiredValue === "") return true;
+    return normalizeSpace(currentValue) === normalizeSpace(String(desiredValue)) || currentValue !== "";
+  }
+
+  if (field.widget === "listbox" || field.widget === "searchableListbox" || tagName === "button") {
+    return !!getButtonDisplayText(control);
+  }
+
+  return false;
 }
 
 function findSectionByLabelText(labelText) {
@@ -769,6 +816,14 @@ async function fillField(field, details, report, usedControls) {
       continue;
     }
 
+    if (controlHasMeaningfulValue(control, field, currentValue)) {
+      if (!field.multiple) {
+        usedControls.add(control);
+      }
+      successCount += 1;
+      continue;
+    }
+
     const tagName = control.tagName.toLowerCase();
     const success = tagName === "select"
       ? setSelectValue(control, currentValue)
@@ -817,6 +872,27 @@ function getContributors(details) {
     }));
 }
 
+function sectionHasContributor(section, contributor) {
+  const desiredName = normalizeSpace(contributor.name);
+  const desiredRole = normalizeSpace(contributor.role || "Author");
+  const rows = Array.from(section.querySelectorAll(".flex.flex-row.gap-4.mt-4"));
+
+  return rows.some((row) => {
+    const name = normalizeSpace(
+      row.querySelector("span.text-gray-800, span.text-gray-800.dark\\:text-gray-200.text-md")?.textContent
+      || row.querySelector("span")?.textContent
+      || ""
+    );
+    const role = normalizeSpace(
+      row.querySelector('button[aria-haspopup="listbox"] span')?.textContent
+      || row.querySelector('button[aria-haspopup="listbox"]')?.textContent
+      || ""
+    );
+
+    return name === desiredName && role === desiredRole;
+  });
+}
+
 async function fillContributors(details, field) {
   const contributors = getContributors(details);
   if (contributors.length === 0) return false;
@@ -827,6 +903,11 @@ async function fillContributors(details, field) {
     const contributor = contributors[index];
     const section = findSectionByLabelText(field.sectionLabel);
     if (!section) continue;
+
+    if (sectionHasContributor(section, contributor)) {
+      successCount += 1;
+      continue;
+    }
 
     if (index > 0) {
       const addButton = findButtonByText(section, field.activateButtonText);
