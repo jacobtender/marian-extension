@@ -1,5 +1,6 @@
 import { isAllowedUrl } from "./extractors";
 import { getCurrentTab } from "./popup/utils";
+import { isHardcoverEditUrl } from "./shared/hardcover";
 import { runtime, StorageBackedSet } from "./shared/utils"
 
 const activeSidebarWindows = new StorageBackedSet("active_sidebar_windows");
@@ -24,15 +25,19 @@ function updateIcon(tabId, isAllowed) {
   });
 }
 
+function canOpenSidebarForUrl(url) {
+  return isAllowedUrl(url) || isHardcoverEditUrl(url);
+}
+
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (!tab.url) return;
-  updateIcon(tabId, isAllowedUrl(tab.url));
+  updateIcon(tabId, canOpenSidebarForUrl(tab.url));
 });
 
 chrome.tabs.onActivated.addListener(({ tabId }) => {
   chrome.tabs.get(tabId, (tab) => {
     if (!tab?.url) return;
-    updateIcon(tabId, isAllowedUrl(tab.url));
+    updateIcon(tabId, canOpenSidebarForUrl(tab.url));
   });
 });
 
@@ -123,7 +128,7 @@ const windowReady = {};
 chrome.action.onClicked.addListener((tab) => {
   if (!tab?.url) return;
 
-  if (!isAllowedUrl(tab.url)) {
+  if (!canOpenSidebarForUrl(tab.url)) {
     updateIcon(tab.id, false);
     showUnsupportedNotification(tab);
     return;

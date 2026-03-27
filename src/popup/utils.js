@@ -3,6 +3,7 @@ import { searchIsbn } from "../shared/getGroup.js";
 import { normalizeUrl } from "../extractors";
 
 let __lastFetchedNorm = '';
+let __lastFetchedDetails = null;
 
 export function setLastFetchedUrl(url) {
   __lastFetchedNorm = normalizeUrl(url);
@@ -10,6 +11,14 @@ export function setLastFetchedUrl(url) {
 
 export function getLastFetchedUrl() {
   return __lastFetchedNorm;
+}
+
+export function setLastFetchedDetails(details) {
+  __lastFetchedDetails = details ? structuredClone(details) : null;
+}
+
+export function getLastFetchedDetails() {
+  return __lastFetchedDetails ? structuredClone(__lastFetchedDetails) : null;
 }
 
 /**

@@ -129,7 +129,8 @@
       padding: 12px;
     }
 
-    #refresh-button {
+    #refresh-button,
+    #fill-hardcover-button {
       width: 100%;
       display: flex;
       align-items: center;
@@ -162,7 +163,8 @@
       color: #e9e9e9;
     }
 
-    #refresh-button.refresh-enabled {
+    #refresh-button.refresh-enabled,
+    #fill-hardcover-button.fill-enabled {
       background-color: #E6B313;
       color: #000;
       cursor: pointer;
@@ -170,7 +172,8 @@
       margin-bottom: 10px;
     }
 
-    #refresh-button.refresh-enabled:active {
+    #refresh-button.refresh-enabled:active,
+    #fill-hardcover-button.fill-enabled:active {
       background-color: #d6a912;
       /* slightly darker yellow */
       border: none;
@@ -178,7 +181,8 @@
       margin-bottom: 12px;
     }
 
-    #refresh-button.refresh-disabled {
+    #refresh-button.refresh-disabled,
+    #fill-hardcover-button.fill-disabled {
       background-color: rgba(255, 255, 255, 0.05);
       color: #cbd5e1;
       cursor: not-allowed;

@@ -164,6 +164,56 @@ Please <a href="${issueUrl}" target="_blank" rel="noopener noreferrer">report</a
   });
 }
 
+export async function fillHardcoverFormInTab(tab, details, retries = 6, delay = 250) {
+  if (!tab?.id) {
+    throw new Error("No active tab found.");
+  }
+
+  async function attempt(remaining) {
+    tab = await waitForTabToComplete(tab.id);
+
+    const pingResp = await chrome.tabs.sendMessage(tab.id, 'ping_content').catch(() => undefined);
+    const pingFail = chrome.runtime.lastError || pingResp !== 'pong';
+
+    if (pingFail) {
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content.js']
+        });
+      } catch (e) {
+        const error = chrome.runtime.lastError || e;
+        throw new Error(error.message ?? String(error));
+      }
+
+      if (remaining <= 0) {
+        throw new Error("Content script did not become available on the Hardcover edit page.");
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return attempt(remaining - 1);
+    }
+
+    return new Promise((resolve, reject) => {
+      chrome.tabs.sendMessage(tab.id, { type: 'fillHardcoverForm', details }, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+
+        if (!response?.ok) {
+          reject(new Error(response?.error || 'Failed to fill Hardcover form.'));
+          return;
+        }
+
+        resolve(response);
+      });
+    });
+  }
+
+  return attempt(retries);
+}
+
 /**
  * Waits for a specific tab to reach the 'complete' status.
  *

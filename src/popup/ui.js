@@ -1,6 +1,10 @@
-import { tryGetDetails } from "./messaging.js";
+import { fillHardcoverFormInTab, tryGetDetails } from "./messaging.js";
 import { isAllowedUrl, normalizeUrl } from "../extractors";
-import { setLastFetchedUrl, getLastFetchedUrl, getCurrentTab, SetupSettings, getLocalDateFormat, orderedKeys, normalizeDetails, notifyBackground } from "./utils.js";
+import {
+  setLastFetchedUrl, getLastFetchedUrl, getCurrentTab, SetupSettings, getLocalDateFormat,
+  orderedKeys, normalizeDetails, notifyBackground, setLastFetchedDetails, getLastFetchedDetails
+} from "./utils.js";
+import { getHardcoverEditTarget, isHardcoverEditUrl } from "../shared/hardcover";
 
 const settingsManager = SetupSettings(document.querySelector("#settings"), {
   hyphenateIsbn: {
@@ -343,9 +347,16 @@ export function showStatus(message, options = {}) {
   const statusEl = statusBox();
   const detailsEl = detailsBox();
   if (!statusEl || !detailsEl) return;
+  const { preserveDetails = false } = options;
   statusEl.style.display = 'block';
   statusEl.innerHTML = message;
-  detailsEl.style.display = 'none';
+  if (!preserveDetails) {
+    statusEl.style.marginBottom = '';
+    detailsEl.style.display = 'none';
+  } else {
+    statusEl.style.marginBottom = '12px';
+    detailsEl.style.display = 'block';
+  }
 }
 
 export function showDetails() {
@@ -353,7 +364,10 @@ export function showDetails() {
   const statusEl = statusBox();
   if (!detailsEl) return;
   detailsEl.style.display = 'block';
-  if (statusEl) statusEl.style.display = 'none';
+  if (statusEl) {
+    statusEl.style.display = 'none';
+    statusEl.style.marginBottom = '';
+  }
 }
 
 // DEBUG: Sidebar logger: mirrors console.* into a sidebar status area
@@ -409,6 +423,42 @@ export function addRefreshButton() {
   container.prepend(btn);
 }
 
+export function addFillHardcoverButton() {
+  const container = document.getElementById('content') || document.body;
+
+  if (document.getElementById('fill-hardcover-button')) return;
+
+  const btn = document.createElement('button');
+  btn.id = 'fill-hardcover-button';
+  btn.textContent = 'Fill Hardcover form';
+  btn.style.display = 'none';
+
+  btn.addEventListener('click', async () => {
+    if (btn.disabled) return;
+
+    const details = getLastFetchedDetails();
+    if (!details) {
+      showStatus("Check out details from a supported source page before filling a Hardcover form.");
+      return;
+    }
+
+    showStatus("Filling Hardcover form...", { preserveDetails: true });
+
+    try {
+      const tab = await getCurrentTab();
+      const result = await fillHardcoverFormInTab(tab, normalizeDetails(details, await settingsManager.get(), false));
+      showStatus(
+        `Filled ${result.filled.length} ${result.target} field${result.filled.length === 1 ? '' : 's'}.`,
+        { preserveDetails: true }
+      );
+    } catch (err) {
+      showStatus(err.message || String(err), { preserveDetails: true });
+    }
+  });
+
+  container.prepend(btn);
+}
+
 async function getDetailsForTab(tab) {
   try {
     const details = await tryGetDetails(tab)
@@ -416,9 +466,11 @@ async function getDetailsForTab(tab) {
     await renderDetails(details);
 
     // 👇 After refreshing, set last fetched & disable if same tab
+    setLastFetchedDetails(details);
     setLastFetchedUrl(tab?.url || "");
     getCurrentTab().then((activeTab) => {
       updateRefreshButtonForUrl(activeTab?.url || "");
+      updateFillHardcoverButtonForUrl(activeTab?.url || "");
     });
   } catch (err) {
     console.error("fetch details fail", err);
@@ -441,6 +493,13 @@ export function updateRefreshButtonForUrl(url) {
   const btn = document.getElementById('refresh-button');
   const statusEl = statusBox();
   if (!btn) return;
+
+  if (isHardcoverEditUrl(url)) {
+    btn.style.display = 'none';
+    btn.disabled = true;
+    btn.classList.remove('refresh-enabled', 'refresh-disabled', 'refresh-unsupported');
+    return;
+  }
 
   const allowed = isAllowedUrl(url);
   const norm = normalizeUrl(url);
@@ -468,6 +527,30 @@ export function updateRefreshButtonForUrl(url) {
   }
 
   if (statusEl && allowed) statusEl.style.display = 'none';
+}
+
+export function updateFillHardcoverButtonForUrl(url) {
+  const btn = document.getElementById('fill-hardcover-button');
+  const statusEl = statusBox();
+  if (!btn) return;
+
+  const target = getHardcoverEditTarget(url);
+  if (!target) {
+    btn.style.display = 'none';
+    btn.disabled = true;
+    return;
+  }
+
+  const details = getLastFetchedDetails();
+  btn.style.display = details ? 'flex' : 'none';
+  btn.disabled = !details;
+  btn.classList.remove('fill-enabled', 'fill-disabled');
+  btn.classList.add(details ? 'fill-enabled' : 'fill-disabled');
+  btn.textContent = details
+    ? `Fill Hardcover ${target} form`
+    : `Check out details, then fill Hardcover ${target} form`;
+
+  if (statusEl && details) statusEl.style.display = 'none';
 }
 
 export function checkActiveTabAndUpdateButton() {
