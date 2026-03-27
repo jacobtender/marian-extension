@@ -22,7 +22,7 @@ import { isbndeScraper } from "./isbnde";
 import { isfdbScraper } from "./isfdb";
 import { kitsuScraper } from "./kitsu";
 import { koboScraper } from "./kobo";
-import { libbyScraper, overdriveScraper, teachingbooksScraper } from "./overdrive";
+import { libbyScraper, listeningBooksScraper, overdriveScraper, teachingbooksScraper } from "./overdrive";
 import { libraryThingScraper } from "./librarything";
 import { librofmScraper } from "./librofm";
 import { mangaDexScraper } from "./mangadex";
@@ -34,6 +34,7 @@ import { penguinRandomHouseScraper } from "./penguinrandomhouse";
 import { romanceIoScraper } from "./romanceio";
 import { royalRoadScraper } from "./royalroad";
 import { scribbleHubScraper } from "./scribblehub";
+import { smashwordsScraper } from "./smashwords";
 import { spacebattlesScraper } from "./spacebattles";
 import { storygraphScraper } from "./storygraph";
 import { torPublishingScraper } from "./torpub";
@@ -66,6 +67,7 @@ const extractors = [
   new libbyScraper(),
   new libraryThingScraper(),
   new librofmScraper(),
+  new listeningBooksScraper(),
   new mangaDexScraper(),
   new mangaUpdatesScraper(),
   new myAnimeListScraper(),
@@ -76,6 +78,7 @@ const extractors = [
   new romanceIoScraper(),
   new royalRoadScraper(),
   new scribbleHubScraper(),
+  new smashwordsScraper(),
   new spacebattlesScraper(),
   new storygraphScraper(),
   new teachingbooksScraper(),
