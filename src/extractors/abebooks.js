@@ -100,7 +100,10 @@ function getMetadata() {
   let details = {};
 
   // authors
-  const authors = [...document.querySelectorAll(`#book-author, #main-feature h2 a>span`)]
+  let authorsElms = document.querySelectorAll(`#book-author a, #main-feature h2 a>span`);
+  if (authorsElms.length === 0) authorsElm = document.querySelectorAll(`#book-author, #main-feature h2`);
+
+  const authors = [...authorsElms]
     .map(i => cleanText(i.textContent))
     .filter(i => i !== ";")
     .map(normalizeAuthorName);
