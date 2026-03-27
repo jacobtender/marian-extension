@@ -2,9 +2,10 @@ import { isAllowedUrl } from "../extractors";
 import { tryGetDetails } from "./messaging.js";
 import {
   showStatus, showDetails, renderDetails, initSidebarLogger,
-  addRefreshButton, updateRefreshButtonForUrl
+  addRefreshButton, addFillHardcoverButton, updateRefreshButtonForUrl, updateFillHardcoverButtonForUrl
 } from "./ui.js";
-import { setLastFetchedUrl, getCurrentTab, notifyBackground, rememberWindowId, isForThisSidebar } from "./utils.js";
+import { setLastFetchedUrl, setLastFetchedDetails, getCurrentTab, notifyBackground, rememberWindowId, isForThisSidebar } from "./utils.js";
+import { isHardcoverEditUrl } from "../shared/hardcover";
 
 const DEBUG = false;
 
@@ -19,12 +20,19 @@ document.addEventListener("DOMContentLoaded", () => {
   getCurrentTab().then((tab) => {
     const url = tab?.url || "";
 
+    addRefreshButton();
+    addFillHardcoverButton();
+    updateRefreshButtonForUrl(url);
+    updateFillHardcoverButtonForUrl(url);
+
+    if (isHardcoverEditUrl(url)) {
+      showStatus("Hardcover edit page detected. Check out details from a supported source page, then use the fill button.");
+      return;
+    }
+
     showStatus("DOM Loaded, fetching details...");
 
-    addRefreshButton();
-    updateRefreshButtonForUrl(url);
-
-    if (!isAllowedUrl(url)) {
+    if (!isAllowedUrl(url) && !isHardcoverEditUrl(url)) {
       showStatus("This extension only works on supported product pages.");
       return;
     }
@@ -50,9 +58,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (detailsEl) detailsEl.innerHTML = "";
         await renderDetails(details);
 
+        setLastFetchedDetails(details);
         setLastFetchedUrl(tab?.url || "");
         getCurrentTab().then((activeTab) => {
           updateRefreshButtonForUrl(activeTab?.url || "");
+          updateFillHardcoverButtonForUrl(activeTab?.url || "");
         });
 
       } catch (err) {
@@ -65,5 +75,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === "TAB_URL_CHANGED" && isForThisSidebar(msg.windowId)) {
     updateRefreshButtonForUrl(msg.url);
+    updateFillHardcoverButtonForUrl(msg.url);
   }
 });

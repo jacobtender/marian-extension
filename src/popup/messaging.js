@@ -1,6 +1,31 @@
 import { getExtractor } from "../extractors/index.js";
 import { showStatus } from "./ui.js";
 
+function getOriginPattern(url) {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.protocol}//${parsed.host}/*`;
+  } catch {
+    return null;
+  }
+}
+
+async function hasHostPermissionForUrl(url) {
+  const origin = getOriginPattern(url);
+  if (!origin) return false;
+
+  return new Promise((resolve) => {
+    chrome.permissions.contains({ origins: [origin] }, (hasPermission) => {
+      resolve(Boolean(hasPermission));
+    });
+  });
+}
+
+function isMissingHostPermissionError(error) {
+  const message = error?.message ?? error?.toString?.() ?? "";
+  return /missing host permission/i.test(message);
+}
+
 function buildIssueUrl(tabUrl) {
   const domain = new URL(tabUrl).hostname.replace(/^www\./, '');
   const title = `Unsupported URL detected on ${domain}`;
@@ -91,23 +116,26 @@ export async function tryGetDetails(tab, retries = 8, delay = 300) {
             const errorMessage = error.message ?? error.toString();
 
             console.error("error injecting script", error);
-            if (errorMessage.includes("Missing host permission")) {
+            if (isMissingHostPermissionError(error)) {
               console.log("Missing permission error detected. Checking permissions...");
               hasInjected = false;
 
               try {
-                const hasPerms = await new Promise(r => chrome.permissions.contains({ origins: [tab.url] }, r));
+                const hasPerms = await hasHostPermissionForUrl(tab.url);
                 console.log(`Permissions for ${tab.url}: ${hasPerms}`);
 
                 if (!hasPerms) {
                   // Create a button for obtaining permission, the code has to run in ui, will restart the call afterwards
-                  const url = new URL(tab.url);
-                  const origin = `${url.protocol}//${url.host}/*`;
+                  const origin = getOriginPattern(tab.url);
+                  if (!origin) {
+                    showStatus("Cannot access this page.");
+                    return;
+                  }
                   showStatus(`Permissions lost after reload.<br/>
 <button 
   id="permGrant" 
-  data-origin=${origin}
-  data-tab-id=${tab.id}
+  data-origin="${origin}"
+  data-tab-id="${tab.id}"
 >Grant Permissions</button>`);
 
                   return;
@@ -162,6 +190,70 @@ Please <a href="${issueUrl}" target="_blank" rel="noopener noreferrer">report</a
     }
     attempt(retries);
   });
+}
+
+export async function fillHardcoverFormInTab(tab, details, retries = 6, delay = 250) {
+  if (!tab?.id) {
+    throw new Error("No active tab found.");
+  }
+
+  async function attempt(remaining) {
+    tab = await waitForTabToComplete(tab.id);
+
+    const pingResp = await chrome.tabs.sendMessage(tab.id, 'ping_content').catch(() => undefined);
+    const pingFail = chrome.runtime.lastError || pingResp !== 'pong';
+
+    if (pingFail) {
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content.js']
+        });
+      } catch (e) {
+        const error = chrome.runtime.lastError || e;
+        if (isMissingHostPermissionError(error)) {
+          const hasPerms = await hasHostPermissionForUrl(tab.url);
+          const origin = getOriginPattern(tab.url);
+
+          if (!hasPerms && origin) {
+            throw new Error(`MISSING_PERMISSION:${origin}`);
+          }
+
+          if (remaining > 0) {
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            return attempt(remaining - 1);
+          }
+        }
+
+        throw new Error(error.message ?? String(error));
+      }
+
+      if (remaining <= 0) {
+        throw new Error("Content script did not become available on the Hardcover edit page.");
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return attempt(remaining - 1);
+    }
+
+    return new Promise((resolve, reject) => {
+      chrome.tabs.sendMessage(tab.id, { type: 'fillHardcoverForm', details }, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+
+        if (!response?.ok) {
+          reject(new Error(response?.error || 'Failed to fill Hardcover form.'));
+          return;
+        }
+
+        resolve(response);
+      });
+    });
+  }
+
+  return attempt(retries);
 }
 
 /**

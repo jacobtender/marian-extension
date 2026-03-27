@@ -157,7 +157,8 @@
 		"https://www.indiebookstores.ca/book/*",
 		"https://openlibrary.org/*",
 		"https://www.penguinrandomhouse.com/books/*",
-		"https://www.smashwords.com/books/*"
+		"https://www.smashwords.com/books/*",
+		"https://hardcover.app/*"
 	],
 	"icons": {
 		"16": "icons/icon.png",
