@@ -42,7 +42,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.type === 'fillHardcoverForm') {
     const send = async () => {
       try {
-        const result = fillHardcoverForm(msg.details || {});
+        const result = await fillHardcoverForm(msg.details || {});
         sendResponse({ ok: true, ...result });
       } catch (e) {
         logMarian("Error filling Hardcover form", e);
