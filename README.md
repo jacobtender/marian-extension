@@ -45,6 +45,7 @@ Book pages on these sites are currently supported by Marian. To request support 
 
 - German National Library
 - Libby
+- Listening Books
 - OverDrive
 - WorldCat
 

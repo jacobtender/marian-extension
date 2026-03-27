@@ -91,6 +91,21 @@ class teachingbooksScraper extends Extractor {
   }
 }
 
+class listeningBooksScraper extends Extractor {
+  get _name() { return "Listening Books Extractor"; }
+  _sitePatterns = [
+    /https:\/\/listening-books\.overdrive\.com\/.*?media\/(\d+)/
+  ];
+  needsReload = false;
+
+  async getDetails() {
+    let id = document.location.href.match(this._sitePatterns[0])[1];
+
+    if (id == undefined) throw new Error(`Overdrive ID not found for URL: ${window.location.href}`);
+    return getDetailsFromOverdriveId(id);
+  }
+}
+
 const apiUrl = "https://thunder.api.overdrive.com/v2/media/bulk";
 
 async function getDetailsFromOverdriveId(id) {
@@ -339,4 +354,4 @@ function collapseAudiobookFormats(formats) {
   return formatList
 }
 
-export { overdriveScraper, libbyScraper, teachingbooksScraper };
+export { overdriveScraper, libbyScraper, teachingbooksScraper, listeningBooksScraper };

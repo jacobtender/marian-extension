@@ -22,7 +22,7 @@ import { isbndeScraper } from "./isbnde";
 import { isfdbScraper } from "./isfdb";
 import { kitsuScraper } from "./kitsu";
 import { koboScraper } from "./kobo";
-import { libbyScraper, overdriveScraper, teachingbooksScraper } from "./overdrive";
+import { libbyScraper, listeningBooksScraper, overdriveScraper, teachingbooksScraper } from "./overdrive";
 import { libraryThingScraper } from "./librarything";
 import { librofmScraper } from "./librofm";
 import { mangaDexScraper } from "./mangadex";
@@ -67,6 +67,7 @@ const extractors = [
   new libbyScraper(),
   new libraryThingScraper(),
   new librofmScraper(),
+  new listeningBooksScraper(),
   new mangaDexScraper(),
   new mangaUpdatesScraper(),
   new myAnimeListScraper(),
