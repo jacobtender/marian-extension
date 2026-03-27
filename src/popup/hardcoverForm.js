@@ -2,13 +2,18 @@ import { getHardcoverEditTarget } from "../shared/hardcover";
 
 const DEBUG_FIELDS = false;
 const DEBUG_PUBLISHER = true;
+const DEBUG_COVER = true;
 
 function normalizeSpace(value) {
   return (value || "").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
 function debugField(fieldLabel, message, extra) {
-  if (!DEBUG_FIELDS && !(DEBUG_PUBLISHER && fieldLabel === "Publisher")) return;
+  if (
+    !DEBUG_FIELDS
+    && !(DEBUG_PUBLISHER && fieldLabel === "Publisher")
+    && !(DEBUG_COVER && fieldLabel === "Cover")
+  ) return;
   if (extra === undefined) {
     console.log(`[Marian fill][${fieldLabel}] ${message}`);
     return;
@@ -27,6 +32,91 @@ function setNativeInputValue(control, nextValue) {
   } else {
     control.value = nextValue;
   }
+}
+
+async function fetchImageAsUploadFile(url) {
+  debugField("Cover", "fetching image", { url });
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch cover image: ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const type = blob.type.toLowerCase();
+  debugField("Cover", "fetched image", { type, size: blob.size });
+
+  if (type === "image/jpeg" || type === "image/jpg" || type === "image/png") {
+    const extension = type.includes("png") ? "png" : "jpg";
+    return new File([blob], `cover.${extension}`, { type });
+  }
+
+  if (typeof createImageBitmap !== "function") {
+    throw new Error(`Unsupported cover format: ${type || "unknown"}`);
+  }
+
+  const bitmap = await createImageBitmap(blob);
+  const canvas = document.createElement("canvas");
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Failed to prepare cover conversion canvas.");
+  }
+
+  context.drawImage(bitmap, 0, 0);
+
+  const convertedBlob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  if (!convertedBlob) {
+    throw new Error("Failed to convert cover image.");
+  }
+
+  return new File([convertedBlob], "cover.png", { type: "image/png" });
+}
+
+async function fillCover(details, field) {
+  const coverUrl = details.img;
+  if (!coverUrl) return false;
+
+  const section = findSectionByLabelText(field.sectionLabel);
+  debugField("Cover", "resolved section", { found: !!section, coverUrl });
+  if (!section) return false;
+
+  const pickerButton = section.querySelector('button[aria-haspopup="listbox"]');
+  debugField("Cover", "picker button", { found: !!pickerButton });
+  if (pickerButton && isInteractableElement(pickerButton)) {
+    triggerPointerClick(pickerButton);
+    await wait(150);
+  }
+
+  const uploadOption = Array.from(document.querySelectorAll('[role="option"]')).find((option) =>
+    normalizeSpace(option.textContent || "").includes("upload a new cover")
+  );
+  debugField("Cover", "upload option", { found: !!uploadOption });
+  if (uploadOption) {
+    triggerPointerClick(uploadOption);
+    await wait(150);
+  }
+
+  await waitFor(() => !!document.querySelector(field.selector), 1500, 75);
+  const fileInput = document.querySelector(field.selector);
+  debugField("Cover", "file input", { found: !!fileInput, id: fileInput?.id || null });
+  if (!fileInput) return false;
+
+  const file = await fetchImageAsUploadFile(coverUrl);
+  const transfer = new DataTransfer();
+  transfer.items.add(file);
+  fileInput.files = transfer.files;
+  debugField("Cover", "assigned file", {
+    fileName: file.name,
+    fileType: file.type,
+    fileSize: file.size,
+    fileCount: fileInput.files?.length || 0
+  });
+  fileInput.dispatchEvent(new Event("input", { bubbles: true }));
+  fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+  await wait(200);
+  debugField("Cover", "post change", { fileCount: fileInput.files?.length || 0 });
+  return true;
 }
 
 function wait(ms = 75) {
@@ -810,6 +900,13 @@ function getEditionFields() {
         return hasNoInput && hasChangeButton && sectionText.includes(desired);
       },
       keywords: ["publisher", "imprint"]
+    },
+    {
+      label: "Cover",
+      sectionLabel: "Cover",
+      selector: '#file-upload',
+      customHandler: fillCover,
+      keywords: ["cover", "image"]
     },
     {
       label: "Contributors",
