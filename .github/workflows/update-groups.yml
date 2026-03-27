@@ -1,0 +1,40 @@
+name: Monthly Groups Update
+
+on:
+  schedule:
+    - cron: "0 0 * * 0" # Runs at midnight on Sunday of every week
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+jobs:
+  update-groups:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --no-audit
+
+      - name: Run groups update
+        run: npm run update-groups
+
+      - name: Commit and push changes
+        uses: EndBug/add-and-commit@v9
+        with:
+          author_name: github-actions[bot]
+          author_email: github-actions[bot]@users.noreply.github.com
+          message: 'Update groups.json (monthly update)'
+          add: 'src/shared/groups.json'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
