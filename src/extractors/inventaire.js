@@ -303,7 +303,7 @@ async function getInventaireDetails(id) {
   // Merge mappings
   if (result["Mappings"]) {
     Object.entries(result["Mappings"]).forEach(([k, v]) => {
-      v.forEach(i => addMlpping(mappings, k, i));
+      v.forEach(i => addMapping(mappings, k, i));
     });
   }
   result["Mappings"] = mappings;

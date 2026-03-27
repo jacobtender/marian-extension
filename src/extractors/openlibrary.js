@@ -49,14 +49,14 @@ async function getDetails(idUrl) {
   const mappings = {};
 
   if (isEdition) {
-    addMapping(mappings, "Open Liberary Edition", data["key"]);
+    addMapping(mappings, "Open Library Edition", data["key"]);
 
     const work = getFirstKey(data["works"]);
     if (work) {
       detailsList.push(getDetails(work));
     }
   } else {
-    addMapping(mappings, "Open Liberary Work", data["key"]);
+    addMapping(mappings, "Open Library Work", data["key"]);
   }
   if ("covers" in data) {
     const covers = data["covers"].filter((i) => i > 0);
