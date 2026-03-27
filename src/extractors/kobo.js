@@ -1,8 +1,9 @@
 import { Extractor } from "./AbstractExtractor.js";
-import { addContributor, getCoverData, logMarian, cleanText, normalizeReadingFormat, collectObject } from "../shared/utils.js";
+import { addContributor, getCoverData, logMarian, cleanText, normalizeReadingFormat, collectObject, getFormattedText } from "../shared/utils.js";
 
 class koboScraper extends Extractor {
     get _name() { return "Kobo Extractor"; }
+    needsReload = false;
     _sitePatterns = [
         /^https?:\/\/(www\.)?kobo\.[a-z]{2,10}\/[a-z]{2,5}\/[a-z]{2,5}\/[a-z]{1,5}book\/[0-9a-z\-]+/,
     ];
@@ -81,11 +82,11 @@ function extractKoboContributors(bookDetails) {
 function getKoboSeries(bookDetails) {
     if (document.querySelector('.product-sequence-field a')) {
         let seriesInfoName = document.querySelector('.product-sequence-field a');
-        let name = seriesInfoName.textContent.trim();
+        let name = cleanText(seriesInfoName.textContent);
         bookDetails['Series'] = name;
         let seriesPlace = document.querySelector('.sequenced-name-prefix');
         if (seriesPlace.textContent.match(/\d+/) > 0) {
-            let seriesNum = seriesPlace.textContent.trim();
+            let seriesNum = cleanText(seriesPlace.textContent);
             let number = seriesNum.match(/\d+/);
             bookDetails['Series Place'] = number[0];
         }
@@ -93,9 +94,9 @@ function getKoboSeries(bookDetails) {
 }
 
 function getKoboBookTitle(bookDetails) {
-    const h1 = document.querySelector('.title-widget h1');
-    const rawTitle = cleanText(h1?.childNodes[0]?.textContent);
-    rawTitle ? bookDetails["Title"] = rawTitle : null;
+    const title = cleanText(document.querySelector('.title-widget h1')?.textContent);
+    const subtitle = cleanText(document.querySelector('.title-widget p')?.textContent);
+    if (title) bookDetails["Title"] = subtitle ? `${title}: ${subtitle}` : title;
 }
 
 function getKoboFormatInfo(bookDetails, url) {
@@ -124,18 +125,14 @@ function getKoboFormatInfo(bookDetails, url) {
     // TODO: see if edition format can be extracted (see download options)
 }
 
-function joinContent(elements) {
-    return Array.from(elements).map(item => cleanText(item.textContent)).join("\n");
-}
-
 function extractKoboDescription(bookDetails) {
-    const descriptionEl = document.querySelectorAll('#synopsis div[data-full-synopsis] p');
-    const fallbackDescriptionEl = document.querySelectorAll('.synopsis-description p');
+    const descriptionEl = document.querySelector('#synopsis div[data-full-synopsis]');
+    const fallbackDescriptionEl = document.querySelector('.synopsis-description');
     let description = null;
     if (descriptionEl) {
-        description = joinContent(descriptionEl);
+        description = getFormattedText(descriptionEl);
     } else if (fallbackDescriptionEl) {
-        description = joinContent(fallbackDescriptionEl);
+        description = getFormattedText(fallbackDescriptionEl);
     }
     bookDetails["Description"] = description;
 }
@@ -147,10 +144,10 @@ function extraKoboInfo(bookDetails) {
     for (let lindex = 0; lindex < extraMetadata.length; lindex++) {
         let mytext = extraMetadata[lindex].textContent;
         if (lindex == 0) {
-            extrainfo['Publisher'] = mytext.trim;
+            extrainfo['Publisher'] = cleanText(mytext);
         } else {
             let [a, b] = mytext.split(':');
-            extrainfo[a.trim()] = b.trim();
+            extrainfo[cleanText(a)] = cleanText(b);
         }
     }
     for (let label in extrainfo) {
@@ -159,10 +156,13 @@ function extraKoboInfo(bookDetails) {
             case 'Release Date':
                 bookDetails['Publication date'] = extrainfo[label];
                 break;
+            case 'Publisher':
+                if (!bookDetails["Publisher"]) bookDetails["Publisher"] = extrainfo["Publisher"];
+                break;
             case 'Imprint':
                 // if the imprint and publisher are the same, use the publisher; otherwise use the imprint
                 // left in case we need to revisit to include both
-                if (extrainfo['Publisher'] == extrainfo[label]) {
+                if (extrainfo['Publisher'] === extrainfo[label]) {
                     bookDetails['Publisher'] = extrainfo['Publisher'];
                 } else {
                     bookDetails['Publisher'] = extrainfo[label];
