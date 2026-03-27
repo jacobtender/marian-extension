@@ -280,6 +280,7 @@ function getButtonDisplayText(control) {
 
 function controlHasMeaningfulValue(control, field, desiredValue) {
   if (!control) return false;
+  if (field?.overwriteExisting) return false;
 
   const tagName = control.tagName.toLowerCase();
   if (tagName === "input" || tagName === "textarea" || tagName === "select") {
@@ -951,21 +952,94 @@ async function fillContributors(details, field) {
   return successCount > 0;
 }
 
+async function fillBookSeries(details, field) {
+  const desiredSeries = String(details.Series || "").trim();
+  const desiredPlace = details["Series Place"];
+  if (!desiredSeries && (desiredPlace == null || desiredPlace === "")) return false;
+
+  let section = findSectionByLabelText(field.sectionLabel);
+  if (!section) return false;
+
+  const findMatchingRow = () => Array.from(section.querySelectorAll(".py-2")).find((row) => {
+    const name = normalizeSpace(
+      row.querySelector("span.text-gray-800, span.text-gray-800.dark\\:text-gray-200.text-md")?.textContent
+      || row.querySelector("span")?.textContent
+      || ""
+    );
+    return desiredSeries && name === normalizeSpace(desiredSeries);
+  }) || null;
+
+  let matchingRow = findMatchingRow();
+
+  if (!matchingRow && desiredSeries) {
+    const addButton = findButtonByText(section, field.activateButtonText);
+    if (addButton) {
+      addButton.click();
+      await wait(150);
+    }
+
+    await waitFor(() => {
+      section = findSectionByLabelText(field.sectionLabel);
+      return !!section?.querySelector(field.selector);
+    }, 1500, 75);
+
+    section = findSectionByLabelText(field.sectionLabel);
+    const control = section?.querySelector(field.selector) || document.querySelector(field.selector);
+    if (!control) return false;
+
+    const added = await setComboboxValue(control, desiredSeries, {
+      ...field,
+      label: "Series",
+      comboboxStrategy: "matched-option-enter",
+      commitCheck: (refreshedSection, desired) => normalizeSpace(refreshedSection.textContent || "").includes(desired)
+    });
+    if (!added) return false;
+
+    await waitFor(() => {
+      section = findSectionByLabelText(field.sectionLabel);
+      return !!findMatchingRow();
+    }, 1500, 75);
+
+    section = findSectionByLabelText(field.sectionLabel);
+    matchingRow = findMatchingRow();
+  }
+
+  if (!matchingRow) return false;
+
+  let success = !!desiredSeries;
+  if (desiredPlace != null && desiredPlace !== "") {
+    const textInput = matchingRow.querySelector('input[id^="series-details-"]');
+    const numberInput = matchingRow.querySelector('input[id^="series-position-"]');
+    const placeText = String(desiredPlace).trim();
+
+    if (textInput) {
+      success = await setControlValueWithRetry(textInput, placeText, 3, "Series");
+    }
+
+    if (numberInput && /^\d+$/.test(placeText)) {
+      const numericSuccess = await setControlValueWithRetry(numberInput, placeText, 3, "Series");
+      success = success || numericSuccess;
+    }
+  }
+
+  return success;
+}
+
 function getBookFields() {
   return [
-    { label: "Title", value: "Title", selector: "#field-title", keywords: ["title"] },
-    { label: "Description", value: "Description", keywords: ["description", "blurb"], elementTypes: ["textarea"] },
-    { label: "Series", value: "Series", keywords: ["series"], exclusions: ["position", "number"] },
-    { label: "Series Place", value: "Series Place", keywords: ["series position", "series number", "position in series", "volume number"] },
+    { label: "Title", value: "Title", selector: "#field-title", keywords: ["title"], overwriteExisting: true },
+    { label: "Headline", value: "Headline", selector: "#field-headline", keywords: ["headline"], overwriteExisting: true },
+    { label: "Description", value: "Description", selector: "textarea", keywords: ["description", "blurb"], elementTypes: ["textarea"], overwriteExisting: true },
     {
-      label: "Contributors",
-      sectionLabel: "Authors & Contributions",
-      activateButtonText: "Add more?",
-      selector: 'input[role="combobox"][placeholder="Search for an author..."]',
-      comboboxStrategy: "matched-option-enter",
-      customHandler: fillContributors,
-      keywords: ["author", "authors", "writer"]
-    }
+      label: "Series",
+      value: "Series",
+      sectionLabel: "Series",
+      selector: 'input[role="combobox"]',
+      activateButtonText: "Add another series",
+      customHandler: fillBookSeries,
+      keywords: ["series"],
+      overwriteExisting: true
+    },
   ];
 }
 
