@@ -866,10 +866,16 @@ async function fillField(field, details, report, usedControls) {
 function getContributors(details) {
   return (details.Contributors || [])
     .filter((contributor) => contributor?.name)
-    .map((contributor) => ({
-      name: contributor.name,
-      role: contributor.roles?.[0] || "Author"
-    }));
+    .flatMap((contributor) => {
+      const roles = Array.isArray(contributor.roles) && contributor.roles.length > 0
+        ? contributor.roles
+        : ["Author"];
+
+      return roles.map((role) => ({
+        name: contributor.name,
+        role: role || "Author"
+      }));
+    });
 }
 
 function sectionHasContributor(section, contributor) {
