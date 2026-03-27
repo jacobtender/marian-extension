@@ -820,8 +820,24 @@ function getEditionFields() {
       customHandler: fillContributors,
       keywords: ["author", "authors", "writer"]
     },
-    { label: "Publication date", value: "Publication date", sectionLabel: "Release Date", selector: "input[type=\"date\"]", keywords: ["publication date", "published", "release date"], inputTypes: ["text", "date"] },
     { label: "Reading Format", value: "Reading Format", sectionLabel: "Reading Format", selector: 'button[aria-haspopup="listbox"]', widget: "listbox", keywords: ["reading format"] },
+    {
+      label: "Pages",
+      value: "Pages",
+      sectionLabel: "Page Count",
+      selector: 'input[type="number"]',
+      keywords: ["pages", "page count"],
+      inputTypes: ["text", "number"]
+    },
+    {
+      label: "Listening Length Seconds",
+      value: "Listening Length Seconds",
+      sectionLabel: "Audiobook Duration",
+      selector: '#field-audio-length-total-seconds',
+      keywords: ["listening length", "duration", "seconds"],
+      inputTypes: ["text", "number"]
+    },
+    { label: "Publication date", value: "Publication date", sectionLabel: "Release Date", selector: "input[type=\"date\"]", keywords: ["publication date", "published", "release date"], inputTypes: ["text", "date"] },
     { label: "Edition Format", value: "Edition Format", selector: "#field-edition-format", keywords: ["edition format", "format", "binding"] },
     { label: "Edition Information", value: "Edition Information", selector: "#field-edition-information", keywords: ["edition information", "edition note", "edition details"] },
     {
@@ -839,14 +855,6 @@ function getEditionFields() {
       selector: 'button[aria-haspopup="listbox"]',
       widget: "searchableListbox",
       keywords: ["country"]
-    },
-    {
-      label: "Pages",
-      value: "Pages",
-      sectionLabel: "Page Count",
-      selector: 'input[type="number"]',
-      keywords: ["pages", "page count"],
-      inputTypes: ["text", "number"]
     }
   ];
 }
