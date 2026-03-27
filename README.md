@@ -25,6 +25,7 @@ Book pages on these sites are currently supported by Marian. To request support 
 - IndieBookstores.ca
 - Libro.fm
 - Rakuten Kobo
+- Smashwords
 
 #### Online Trackers & Social
 
