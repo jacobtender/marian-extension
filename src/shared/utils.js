@@ -296,7 +296,7 @@ export function addMapping(mappings, name, ids) {
     ids = [ids];
   }
 
-  let map = mappings[name] ?? [];
+  const map = mappings[name] ?? [];
   for (const id of ids) {
     if (!map.includes(id)) map.push(id);
   }
@@ -376,15 +376,32 @@ export async function collectObject(items) {
 
   const objList = await Promise.all(items);
 
-  let obj = {};
+  const obj = {};
   for (let i = 0; i < objList.length; i += 1) {
     const elm = objList[i];
-    if (elm == undefined) {
+    if (elm == null) {
       logMarian(`WARN: element number ${i} is ${elm}`)
       continue;
     }
-    Object.entries(elm)
-      .forEach(([k, v]) => obj[k] = v);
+    for (let [k, v] of Object.entries(elm)) {
+      // Merge contributors
+      if (k === "Contributors" && Array.isArray(v)) {
+        const contributors = obj["Contributors"] || [];
+        for (const item of v) {
+          if (item?.name) addContributor(contributors, item.name, item.roles || []);
+        }
+        v = contributors;
+      }
+
+      // Merge mappings
+      if (k === "Mappings") {
+        let mappings = obj["Mappings"] || {};
+        for (const [mapping, ids] of Object.entries(v)) mappings = addMapping(mappings, mapping, ids);
+        v = mappings;
+      }
+
+      obj[k] = v;
+    };
   }
 
   return obj;
@@ -412,6 +429,27 @@ export async function fetchHTML(url, args = undefined) {
   } catch (error) {
     console.error('Error fetching HTML:', error);
   }
+}
+
+/**
+ * Performs an HTTP request via the background script to bypass CSP restrictions.
+ * @param {string} url URL to fetch
+ * @returns {Promise<string>} response text
+ */
+export async function fetchBackground(url) {
+  const response = await runtime.sendMessage({ action: 'fetchUrl', url });
+  if (response && response.status === 'success') {
+    return response.data;
+  }
+
+  const msg = response?.message || '';
+  if (msg.includes("NetworkError") || msg.includes("Failed to fetch") || msg.includes("CORS") || msg.includes("Missing Allow Origin")) {
+    const u = new URL(url);
+    const origin = `${u.protocol}//${u.host}/*`;
+    throw new Error(`MISSING_PERMISSION:${origin}`);
+  }
+
+  throw new Error(msg || 'Failed to fetch via background');
 }
 
 export { StorageBackedSet } from "./StorageSet.js";

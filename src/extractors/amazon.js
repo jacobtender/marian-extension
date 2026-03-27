@@ -1,5 +1,7 @@
+import { addContributor, cleanText, collectObject, fetchBackground, getCoverData, getFormattedText, logMarian, normalizeReadingFormat } from '../shared/utils.js';
 import { Extractor } from "./AbstractExtractor.js"
-import { logMarian, getFormattedText, getCoverData, addContributor, cleanText, normalizeReadingFormat, collectObject } from '../shared/utils.js';
+import { getRegion, fetchAudnexusApiDetails, fetchAudibleApiDetails } from './audible.js';
+
 const bookSeriesRegex = /^Book (\d+) of \d+$/i;
 
 const includedLabels = new Set([
@@ -34,7 +36,7 @@ class amazonScraper extends Extractor {
     const contributors = extractAmazonContributors();
 
     bookDetails["Edition Format"] = getSelectedFormat() || '';
-    bookDetails["Title"] = document.querySelector('#productTitle')?.innerText.trim();
+    bookDetails["Title"] = cleanText(document.querySelector('#productTitle')?.innerText);
     bookDetails["Description"] = getBookDescription() || '';
     bookDetails["Contributors"] = contributors;
 
@@ -48,11 +50,11 @@ class amazonScraper extends Extractor {
 
     // combined publisher date
     const pubDate = bookDetails["Publisher"]?.match(/^(?<pub>[^(;]+?)(?:; (?<edition>[\w ]+))? \((?<date>\d{1,2} \w+ \d{4})\)$/);
-    if (pubDate != undefined) {
-      bookDetails["Publisher"] = pubDate.groups["pub"].trim();
+    if (pubDate != null) {
+      bookDetails["Publisher"] = cleanText(pubDate.groups["pub"]);
       bookDetails["Publication date"] = pubDate.groups["date"];
       if (pubDate.groups["edition"]) {
-        bookDetails["Edition Information"] = pubDate.groups["edition"].trim();
+        bookDetails["Edition Information"] = cleanText(pubDate.groups["edition"]);
       }
     }
 
@@ -68,7 +70,7 @@ class amazonScraper extends Extractor {
     // If the isbn10 is the isbn13 and is in the ASIN
     const isbn10 = bookDetails["ISBN-10"]?.replace("-", "");
     const isbn13 = bookDetails["ISBN-13"]?.replace("-", "");
-    const asin = bookDetails["ASIN"];
+    const asin = bookDetails["ASIN"] ?? audibleDetails["ASIN"];
     if (
       isbn10 != null &&
       isbn13 != null &&
@@ -81,19 +83,46 @@ class amazonScraper extends Extractor {
       bookDetails["ISBN-10"] = asin;
     }
 
+    const audibleAsin = getAudibleAsin();
+    let apiPromise = {};
+    if (audibleAsin &&
+      (bookDetails["Reading Format"] === "Audiobook" || audibleDetails["Reading Format"] === "Audiobook")
+    ) {
+      delete bookDetails["ASIN"];
+      bookDetails["Amazon ASIN"] = asin;
+      audibleDetails["ASIN"] = audibleAsin;
+      apiPromise = fetchApiDetails(audibleAsin, audibleDetails);
+    }
+
     const mergedDetails = await collectObject([
       bookDetails,
       audibleDetails,
+      apiPromise,
       coverData,
     ]);
 
     delete mergedDetails.Edition;
     delete mergedDetails.Version;
+    delete mergedDetails._detectedRegion;
 
     // logMarian("details", mergedDetails);
 
     return mergedDetails;
   }
+}
+
+async function fetchApiDetails(asin, audibleDetails) {
+  if (!asin || audibleDetails['Reading Format'] !== 'Audiobook') {
+    return {};
+  }
+
+  let tld = audibleDetails['_detectedRegion'] || document.location.host.split("amazon").pop();
+  const region = getRegion(tld);
+
+  return await collectObject([
+    fetchAudibleApiDetails(asin, tld),
+    fetchAudnexusApiDetails(asin, region),
+  ])
 }
 
 async function getCover() {
@@ -126,11 +155,13 @@ async function getCover() {
   });
 
   // get original image
-  covers.forEach((value) => value && covers.add(getHighResImageUrl(value)));
+  [...covers]
+    .filter(i => i)
+    .forEach((url) => { covers.add(getHighResImageUrl(url)); });
 
   const coverList = Array.from(covers)
     .filter((x) => !x.includes("01RmK+J4pJL.gif")); // filter out no image image
-  console.log(coverList)
+  // console.log(coverList)
 
   const coverRes = await getCoverData(coverList);
   if (coverRes.imgScore === 0) return {}
@@ -197,7 +228,7 @@ function getDetailBullets() {
   // Double check book series
   const series = document.querySelector("div[data-feature-name='seriesBulletWidget'] a")
   if (!details["Series"] && series != undefined) {
-    const match = series.textContent.trim().match(/Book (\d+) of \d+: (.+)/i);
+    const match = cleanText(series.textContent).match(/Book (\d+) of \d+: (.+)/i);
     if (match) {
       details['Series'] = match[2];
       details['Series Place'] = match[1];
@@ -215,8 +246,8 @@ function getAudibleDetails() {
   const rows = table.querySelectorAll('tr');
 
   rows.forEach(row => {
-    const label = row.querySelector('th span')?.textContent?.trim();
-    const value = row.querySelector('td')?.innerText?.trim();
+    const label = cleanText(row.querySelector('th span')?.textContent);
+    const value = cleanText(row.querySelector('td')?.innerText);
     const match = bookSeriesRegex.exec(label) || bookSeriesRegex.exec(value);
 
     // Handle book series special case
@@ -235,10 +266,10 @@ function getAudibleDetails() {
     }
 
     // Match any Audible.<TLD> Release Date
-    if (/^Audible\.[^\s]+ Release Date$/i.test(label)) {
+    const regionMatch = label?.match(/^Audible(\.[a-z.]+) Release Date$/i);
+    if (regionMatch) {
       details['Publication date'] = value;
-    } else if (label === 'Audible.com Release Date') {
-      details['Publication date'] = value;
+      details['_detectedRegion'] = regionMatch[1].toLowerCase();
     } else if (label === 'Program Type') {
       details['Reading Format'] = value;
       details['Edition Format'] = "Audible";
@@ -267,10 +298,31 @@ function getBookDescription() {
   return getFormattedText(container);
 }
 
+function getAudibleAsin() {
+  // 1. Check hidden input
+  const hiddenInput = document.querySelector('input[name="audibleASIN"]');
+  if (hiddenInput?.value) return hiddenInput.value;
+  // 2. Check Sample Player JSON
+  const samplePlayer = document.querySelector('[data-play-audiosample-cloud-player]');
+  if (samplePlayer) {
+    try {
+      const config = JSON.parse(samplePlayer.dataset.playAudiosampleCloudPlayer);
+      const urlParams = new URLSearchParams(config.cloudPlayerUrl.split('?')[1]);
+      const asin = urlParams.get('asin');
+      if (asin) return asin;
+    } catch { }
+  }
+  // 3. Check Swatches
+  const audioSwatch = Array.from(document.querySelectorAll('#tmmSwatches .swatchElement'))
+    .find(el => el.textContent.toLowerCase().includes('audiobook') || el.textContent.toLowerCase().includes('audible'));
+
+  return audioSwatch?.dataset.asin || audioSwatch?.dataset.defaultasin || null;
+}
+
 function getSelectedFormat() {
   const selected = document.querySelector('#tmmSwatches .swatchElement.selected .slot-title span[aria-label]');
   if (selected) {
-    return selected.getAttribute('aria-label')?.replace(' Format:', '').trim();
+    return cleanText(selected.getAttribute('aria-label')?.replace(' Format:', ''));
   }
   return null;
 }
@@ -280,8 +332,8 @@ function extractAmazonContributors() {
 
   const authorSpans = document.querySelectorAll('#bylineInfo .author');
   authorSpans.forEach(span => {
-    const name = span.querySelector('a')?.innerText.trim();
-    const roleText = span.querySelector('.contribution span')?.innerText.trim();
+    const name = cleanText(span.querySelector('a')?.innerText);
+    const roleText = cleanText(span.querySelector('.contribution span')?.innerText);
     let roles = [];
 
     if (roleText) {
@@ -289,7 +341,7 @@ function extractAmazonContributors() {
       const roleMatch = roleText.match(/\(([^)]+)\)/);
       if (roleMatch) {
         // Split by comma and trim each role
-        roles = roleMatch[1].split(',').map(r => r.trim());
+        roles = roleMatch[1].split(',').map(cleanText);
       }
     } else {
       roles.push("Contributor"); // fallback if role is missing

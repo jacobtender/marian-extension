@@ -24,7 +24,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse(details);
       } catch (e) {
         logMarian("Error getting info", e);
-        sendResponse(null);
+        sendResponse({ __marian_error: e.message || String(e) });
       }
     };
 
