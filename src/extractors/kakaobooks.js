@@ -41,6 +41,9 @@ function getProductDetails(details) {
     if (titleSplit[titleSplit.length - 1].toLowerCase().includes("físico")) {
       details["Reading Format"] = normalizeReadingFormat("physical");
     }
+    else if (titleSplit[titleSplit.length - 1].toLowerCase().includes("digital")) {
+      details["Reading Format"] = normalizeReadingFormat("digital");
+    }
 
     const contributors = [];
     // check description for information
@@ -50,7 +53,7 @@ function getProductDetails(details) {
         addContributor(contributors, splitString[1].trim(), "Author");
       }
       else if (dataString.includes("Páginas")) {
-        details["Pages"] = splitString[1].trim();
+        details["Pages"] = splitString[1].trim().replace(/\D+/g, '');
       }
       else if (dataString.includes("Traducción")) {
         addContributor(contributors, splitString[1].trim(), "Translator");
