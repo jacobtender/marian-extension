@@ -62,6 +62,7 @@ Book pages on these sites are currently supported by Marian. To request support 
 
 - Penguin Random House
 - Tor Publishing Group
+- Kakao Books
 
 #### Digital Archives & Search Engines
 
