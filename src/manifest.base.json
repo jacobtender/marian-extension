@@ -158,7 +158,7 @@
 		"https://openlibrary.org/*",
 		"https://www.penguinrandomhouse.com/books/*",
 		"https://www.smashwords.com/books/*",
-		"https://www.kakaobooks.com/*"
+		"https://www.kakaobooks.com/producto/*"
 	],
 	"icons": {
 		"16": "icons/icon.png",
