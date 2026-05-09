@@ -43,6 +43,7 @@ function getProductDetails(details) {
     }
 
     const contributors = [];
+    // check description for information
     descriptionArray.forEach(dataString => {
       const splitString = dataString.split(":");
       if (dataString.includes("Autora") || dataString.includes("Autor")) {
@@ -73,6 +74,7 @@ function getProductDetails(details) {
   }
 }
 
+// The description is in p tags after a hr tag
 function getDescription() {
   const descriptionChilds = document.querySelectorAll(".woocommerce-product-details__short-description > *");
   let targetNodeFound = false;
