@@ -8,6 +8,7 @@ import { animePlanetScraper } from "./animeplanet";
 import { archiveOfOurOwnScraper } from "./ao3";
 import { audibleScraper } from "./audible";
 import { barnesAndNobleScraper } from "./barnesnoble";
+import { blackstoneLibaryScraper } from "./blackstoneLibary";
 import { booksAMillionScraper } from "./booksamillion";
 import { bookshopScraper } from "./bookshopOrg";
 import { dnbdeScraper } from "./dnbde";
@@ -50,6 +51,7 @@ const extractors = [
   new archiveOfOurOwnScraper(),
   new audibleScraper(),
   new barnesAndNobleScraper(),
+  new blackstoneLibaryScraper(),
   new booksAMillionScraper(),
   new bookshopScraper(),
   new dnbdeScraper(),
