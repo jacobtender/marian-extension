@@ -500,3 +500,21 @@ document.addEventListener("click", function(event) {
     });
   }
 });
+
+// Footer
+// set version number
+document.querySelector("#version-number").textContent = "v" + browser.runtime.getManifest().version;
+// deselect radio button when clicking on an activated one
+let activeFooterDisplayToggle = ""
+document.querySelectorAll("#footer input[type='radio'][name='display-toggle']").forEach((radio) => {
+  radio.addEventListener("click", (e) => {
+    // the check with the id has to be done since the click event is fired after the radio button is checked
+    if (e.target.id === activeFooterDisplayToggle) {
+      e.target.checked = false;
+      activeFooterDisplayToggle = "";
+    }
+    else {
+      activeFooterDisplayToggle = e.target.id;
+    }
+  });
+});
