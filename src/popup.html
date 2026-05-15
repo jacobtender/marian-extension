@@ -3,6 +3,12 @@
 
 <head>
   <style>
+    :root {
+      --highlight-background: rgba(255, 255, 255, 0.05);
+      --inner-padding: 8px;
+      --border-radius: 6px;
+    }
+
     html,
     body {
       height: 100%;
@@ -215,10 +221,61 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 6px;
-      padding: 8px 12px;
+      gap: var(--inner-padding);
+      padding: 12px;
       background: #0f2233;
       border-top: 2px solid #384151;
+    }
+
+    .footer-content input[type="radio"] {
+      display: none;
+    }
+
+    .footer-bar-container {
+      width: 100%;
+    }
+
+    .footer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-radius: var(--border-radius);
+      background-color: var(--highlight-background);
+      padding: var(--inner-padding);
+      font-size: 13px;
+    }
+
+    .footer-bar .footer-icons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .footer-bar .footer-icons img {
+      width: 20px;
+      filter: invert(67%) sepia(11%) saturate(312%) hue-rotate(180deg) brightness(92%) contrast(93%);
+    }
+
+    .hardcover-content,
+    .settings-content {
+      max-height: 0;
+      overflow: hidden;
+      border-radius: var(--border-radius);
+      background-color: var(--highlight-background);
+      transition: max-height 0.2s ease-out;
+    }
+
+    #hardcover-toggle:checked ~ .hardcover-content {
+      max-height: 500px;
+    }
+
+    #settings-toggle:checked~.settings-content {
+      max-height: 500px;
+    }
+
+    #hardcover-callout {
+      padding: var(--inner-padding);
+      margin: 0;
+      background: none;
     }
 
     #hardcover-callout img {
@@ -257,87 +314,9 @@
       display: block;
     }
 
-    .settings-drawer {
-      background: rgba(255, 255, 255, 0.05);
-      position: relative;
-      width: 100%;
-      border-radius: 6px;
-    }
-
-    .settings-drawer input[type="checkbox"] {
-      display: none;
-    }
-
-    .settings-toggle {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 12px 30px;
-      cursor: pointer;
-      user-select: none;
-      border-radius: 6px;
-      border: none;
-      transition: background 0.2s;
-    }
-
-    .settings-toggle:hover {
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    #settings-toggle:checked~.settings-toggle {
-      border-bottom-left-radius: 0px;
-      border-bottom-right-radius: 0px;
-      border-bottom: 1px solid #2d4253;
-
-      &.settings-toggle:hover {
-        background: rgba(255, 255, 255, 0.05);
-      }
-    }
-
-    .arrow {
-      width: 0;
-      height: 0;
-      border-left: 5px solid transparent;
-      border-right: 5px solid transparent;
-      border-bottom: 6px solid #3f5a73;
-      transition: transform 0.3s ease;
-    }
-
-    .toggle-text {
-      font-size: 12px;
-      font-weight: 500;
-      color: #bbb;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex: 1;
-    }
-
-    .line {
-      flex: 1;
-      height: 1px;
-      background: #3f5a73;
-    }
-
-    .settings-content {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease-out;
-    }
-
-    .settings-drawer input[type="checkbox"]:checked~.settings-content {
-      max-height: 500px;
-    }
-
-    .settings-drawer input[type="checkbox"]:checked~label.settings-toggle .arrow {
-      transform: rotate(180deg);
-    }
-
+    /* settings */
     .settings-inner {
-      padding: 20px;
+      padding: var(--inner-padding);
     }
 
     .setting-item {
@@ -456,45 +435,63 @@
   <script type="module" src="./popup.js"></script>
 
   <footer id="footer">
-    <div class="settings-drawer">
-      <input type="checkbox" id="settings-toggle">
-      <label for="settings-toggle" class="settings-toggle">
-        <span class="arrow"></span>
-        <div class="toggle-text">
-          <span class="line"></span>
-          <span>Settings</span>
-          <span class="line"></span>
+    <div class="footer-content">
+      <input type="radio" id="hardcover-toggle" name="display-toggle" />
+      <div class="hardcover-content">
+        <div id="hardcover-callout">
+          <img class="tilt" src="icons/third-party/hardcover.svg" alt="Hardcover">
+          <div class="callout-text">
+            Discover life-changing books, track your reading habits, and connect with other passionate readers on
+            <a href="https://hardcover.app/join?referrer_id=8753" target="_blank" title="Hardcover">Hardcover</a>!
+          </div>
         </div>
-        <span class="arrow"></span>
-      </label>
+      </div>
+      <input type="radio" id="settings-toggle" name="display-toggle" />
       <div class="settings-content">
         <div id="settings" class="settings-inner">
           <!-- settings get inserted here -->
         </div>
       </div>
     </div>
-    </div>
+    <div class="footer-bar-container">
+      <div class="footer-bar">
+        <span id="version-number"><!-- version number gets inserted here --></span>
 
-    <div id="hardcover-callout">
-      <img class="tilt" src="icons/third-party/hardcover.svg" alt="Hardcover">
-      <div class="callout-text">
-        Discover life-changing books, track your reading habits, and connect with other passionate readers on
-        <a href="https://hardcover.app/join?referrer_id=8753" target="_blank" title="Hardcover">Hardcover</a>!
+        <div class="footer-icons">
+          <div class="hardcover-drawer" title="Show Info">
+            <label for="hardcover-toggle" class="hardcover-toggle">
+              <img src="icons/extra icons/info.svg" alt="more information icon" />
+            </label>
+          </div>
+
+          <div class="settings-drawer" title="Show Settings">
+            <label for="settings-toggle" class="settings-toggle">
+              <img src="icons/extra icons/gear.svg" alt="settings icon" />
+            </label>
+          </div>
+
+          <div class="bug-drawer" title="Report a Bug">
+            <a href="https://github.com/jacobtender/marian-extension/issues/new?template=bug_report.md" target="_blank">
+              <img src="icons/extra icons/bug.svg" alt="Report a Bug" title="Report a Bug" />
+            </a>
+          </div>
+        </div>
+        
+        <div id="footer-icons">
+          <a href="https://github.com/jacobtender/marian-extension" target="_blank" title="GitHub">
+            <img src="icons/third-party/github-white.svg" alt="GitHub">
+          </a>
+          <a href="https://ko-fi.com/jacobtender" target="_blank" title="Buy me a coffee">
+            <img src="icons/third-party/kofi.svg" alt="Ko-fi">
+          </a>
+          <a href="https://jacobtender.net/" target="_blank" title="Jacob Tender">
+            <img src="icons/third-party/jacob-tender-pilcrow.png" alt="Jacob Tender">
+          </a>
+          <a href="https://hardcover.app/join?referrer_id=8753" target="_blank" title="Hardcover">
+            <img class="tilt" src="icons/third-party/hardcover.svg" alt="Hardcover">
+          </a>
+        </div>
       </div>
-    </div>
-    <div id="footer-icons">
-      <a href="https://github.com/jacobtender/marian-extension" target="_blank" title="GitHub">
-        <img src="icons/third-party/github-white.svg" alt="GitHub">
-      </a>
-      <a href="https://ko-fi.com/jacobtender" target="_blank" title="Buy me a coffee">
-        <img src="icons/third-party/kofi.svg" alt="Ko-fi">
-      </a>
-      <a href="https://jacobtender.net/" target="_blank" title="Jacob Tender">
-        <img src="icons/third-party/jacob-tender-pilcrow.png" alt="Jacob Tender">
-      </a>
-      <a href="https://hardcover.app/join?referrer_id=8753" target="_blank" title="Hardcover">
-        <img class="tilt" src="icons/third-party/hardcover.svg" alt="Hardcover">
-      </a>
     </div>
   </footer>
 </body>
