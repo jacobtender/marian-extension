@@ -29,7 +29,7 @@ class audibleScraper extends Extractor {
             return details;
         }
 
-        details.ASIN = asin;
+        // details.ASIN = asin;
 
         try {
             const audibleData = await fetchAudibleApiDetails(asin);
@@ -101,7 +101,8 @@ export async function fetchAudnexusApiDetails(asin, region = null) {
         region = getRegion(tld);
     }
 
-    details["Audible Region"] = region;
+    // details["Audible Region"] = region;
+    details["Mappings"] = { "Audible": [getHardcoverMapping(asin, region)] };
 
     let data;
 
@@ -193,7 +194,8 @@ export async function fetchAudibleApiDetails(asin, tld = null) {
     if (!tld.startsWith(".")) tld = `.${tld}`;
     const apiHost = `api.audible${tld}`;
 
-    details["Audible Region"] = getRegion(tld);
+    // details["Audible Region"] = getRegion(tld);
+    details["Mappings"] = { "Audible": [getHardcoverMapping(asin, getRegion(tld))] };
 
     try {
         resHtml = await fetchBackground(`https://${apiHost}/1.0/catalog/products/${asin}?response_groups=category_ladders,contributors,media,product_attrs,product_desc,product_details,product_extended_attrs,rating,series&image_sizes=512,1024`);
@@ -284,6 +286,18 @@ export async function fetchAudibleApiDetails(asin, tld = null) {
     // }
 
     return details;
+}
+
+
+/**
+ * Get the hardcover format for audible mappings of ASIN:region
+ *
+ * @param {string} asin The audible asin of the item
+ * @param {string} region The audible region for the ASIN
+ * @returns {string} The mapping string
+ */
+function getHardcoverMapping(asin, region) {
+    return `${asin.toUpperCase()}:${region.toLowerCase()}`
 }
 
 export { audibleScraper };
