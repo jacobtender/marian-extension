@@ -5,7 +5,7 @@ import { setLastFetchedUrl, getLastFetchedUrl, getCurrentTab, SetupSettings, get
 const settingsManager = SetupSettings(document.querySelector("#settings"), {
   hyphenateIsbn: {
     type: "selection", label: "Hyphenate ISBNs", options: {
-      // yes: "Yes",
+      yes: "Yes",
       no: "No (Hardcover)",
       none: "Leave Alone",
     }, default: "none"

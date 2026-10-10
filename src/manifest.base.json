@@ -132,7 +132,9 @@
 		"https://booksamillion.com/p/*",
 		"https://www.booksamillion.com/p/*",
 
-		"https://www.novelupdates.com/series/*",
+		"https://raw.githubusercontent.com/jacobtender/marian-extension/refs/heads/*",
+		
+    "https://www.novelupdates.com/series/*",
 		"https://www.mangaupdates.com/series/*",
 		"https://www.scribblehub.com/series/*",
 		"https://www.royalroad.com/fiction/*",
